@@ -3,13 +3,16 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "postbuild": "cp -r dist server/ || xcopy dist server\\dist /E /I /Y",
+    "build": "vite build && cp -r dist server/",
+    "build:only": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start:prod": "cd server && NODE_ENV=production npm start"
+    "start:prod": "cd server && npm start"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.8",
@@ -29,7 +32,6 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
-    "terser": "^5.36.0",
     "vite": "^6.3.5"
   }
 }
