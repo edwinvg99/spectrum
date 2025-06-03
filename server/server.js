@@ -17,7 +17,7 @@ console.log('🌍 Entorno:', process.env.NODE_ENV || 'development');
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'http://localhost:3000', 
+    'http://localhost:3001', 
     'https://spectrum.up.railway.app',
     /https:\/\/.*\.railway\.app$/ // Permitir todos los subdominios de Railway
   ],
