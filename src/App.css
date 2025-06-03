@@ -1,0 +1,48 @@
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #000000;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+.main-content-wrapper {
+  padding-top: 80px; 
+  /* Puedes ajustar este valor si la altura de tu navbar cambia o si quieres más/menos espacio */
+}
+
+.content-area { /* El nombre de la clase del div en App.jsx */
+  padding-top: 80px;
+  /* Si tu HomePage ocupa 100vh, este padding empujará SU contenido, pero el HomePage en sí empezará en la parte superior del content-area. */
+}
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
