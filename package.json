@@ -6,10 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "postbuild": "cp -r dist server/ || xcopy dist server\\dist /E /I /Y",
     "lint": "eslint .",
     "preview": "vite preview",
-    "build:full": "npm run build && npm run copy-build",
-    "copy-build": "cp -r dist server/",
     "start:prod": "cd server && NODE_ENV=production npm start"
   },
   "dependencies": {

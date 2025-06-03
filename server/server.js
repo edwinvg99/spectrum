@@ -3,157 +3,105 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const app = express();
+
+// Railway proporciona PORT automáticamente, usar eso o 3001 por defecto
 const PORT = process.env.PORT || 3001;
 
 require('dotenv').config();
 
-// Middleware
+console.log('🚀 Iniciando servidor...');
+console.log('📍 Puerto:', PORT);
+console.log('🌍 Entorno:', process.env.NODE_ENV || 'development');
+
+// Middleware CORS - Importante para Railway
 app.use(cors({
   origin: [
-    'http://localhost:5173', 
-    'http://localhost:3000',
-    'https://spectrum.up.railway.app' // Agregar tu dominio de Railway
+    'http://localhost:5173',
+    'http://localhost:3000', 
+    'https://spectrum.up.railway.app',
+    /https:\/\/.*\.railway\.app$/ // Permitir todos los subdominios de Railway
   ],
   credentials: true
 }));
-app.use(express.json());
 
-// Servir archivos estáticos del frontend en producción
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Servir archivos estáticos en producción
 if (process.env.NODE_ENV === 'production') {
+  console.log('📁 Sirviendo archivos estáticos desde:', path.join(__dirname, '../dist'));
   app.use(express.static(path.join(__dirname, '../dist')));
 }
+
+// Health check endpoint - DEBE estar antes de las otras rutas
+app.get('/api/health', (req, res) => {
+  console.log('🏥 Health check solicitado');
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'Servidor funcionando correctamente',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT,
+    hasApiKey: !!process.env.API_KEY
+  });
+});
 
 // Rutas de API
 app.use('/api/valorant', require('./routes/valorant'));
 
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Servidor funcionando correctamente',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
-
-// En producción, servir el frontend para todas las rutas no-API
+// En producción, servir React para todas las rutas que no sean API
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
+    console.log('🎯 Ruta capturada:', req.path);
     res.sendFile(path.join(__dirname, '../dist/index.html'));
   });
 }
 
 // Manejo de errores
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Algo salió mal en el servidor!' });
+  console.error('💥 Error del servidor:', err.stack);
+  res.status(500).json({ 
+    error: 'Error interno del servidor',
+    message: err.message,
+    timestamp: new Date().toISOString()
+  });
 });
 
+// 404 para rutas no encontradas
 app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Ruta no encontrada' });
+  console.log('❌ Ruta no encontrada:', req.originalUrl);
+  res.status(404).json({ 
+    error: 'Ruta no encontrada',
+    path: req.originalUrl,
+    timestamp: new Date().toISOString()
+  });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+// Iniciar servidor
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Servidor corriendo en puerto ${PORT}`);
   console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔑 API Key configurada: ${process.env.API_KEY ? 'Sí' : 'No'}`);
+  
   if (process.env.NODE_ENV === 'production') {
     console.log(`🔗 Aplicación disponible en: https://spectrum.up.railway.app`);
+    console.log(`💚 Health check: https://spectrum.up.railway.app/api/health`);
   }
 });
 
-const router = express.Router();
-const API_KEY = process.env.API_KEY;
-
-
-// Obtener datos básicos del jugador
-router.get('/player/:name/:tag', async (req, res) => {
-  try {
-    const { name, tag } = req.params;
-    
-    const response = await fetch(`https://api.henrikdev.xyz/valorant/v1/account/${name}/${tag}`, {
-      method: 'GET',
-      headers: {
-        "Authorization": API_KEY,
-        "Accept": "*/*"
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching player data:', error);
-    res.status(500).json({ error: 'Error fetching player data', details: error.message });
-  }
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM recibido, cerrando servidor...');
+  server.close(() => {
+    console.log('✅ Servidor cerrado correctamente');
+    process.exit(0);
+  });
 });
 
-// Obtener datos de MMR del jugador
-router.get('/mmr/:region/:name/:tag', async (req, res) => {
-  try {
-    const { region, name, tag } = req.params;
-    
-    const response = await fetch(`https://api.henrikdev.xyz/valorant/v1/mmr-history/${region}/${name}/${tag}`, {
-      method: 'GET',
-      headers: {
-        "Authorization": API_KEY,
-        "Accept": "*/*"
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching MMR data:', error);
-    res.status(500).json({ error: 'Error fetching MMR data', details: error.message });
-  }
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT recibido, cerrando servidor...');
+  server.close(() => {
+    console.log('✅ Servidor cerrado correctamente');
+    process.exit(0);
+  });
 });
-
-// Endpoint combinado para obtener todos los datos
-router.get('/complete/:region/:name/:tag', async (req, res) => {
-  try {
-    const { region, name, tag } = req.params;
-    
-    const [playerResponse, mmrResponse] = await Promise.all([
-      fetch(`https://api.henrikdev.xyz/valorant/v1/account/${name}/${tag}`, {
-        method: 'GET',
-        headers: {
-          "Authorization": API_KEY,
-          "Accept": "*/*"
-        },
-      }),
-      fetch(`https://api.henrikdev.xyz/valorant/v1/mmr-history/${region}/${name}/${tag}`, {
-        method: 'GET',
-        headers: {
-          "Authorization": API_KEY,
-          "Accept": "*/*"
-        },
-      })
-    ]);
-
-    const [playerData, mmrData] = await Promise.all([
-      playerResponse.json(),
-      mmrResponse.json()
-    ]);
-
-    res.json({
-      success: true,
-      player: playerData,
-      mmr: mmrData
-    });
-  } catch (error) {
-    console.error('Error fetching complete player data:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error fetching complete player data', 
-      details: error.message 
-    });
-  }
-});
-
-module.exports = router;
