@@ -3,9 +3,9 @@
 NODE_VERSION = "20"
 
 [phases.setup]
-nixPkgs = ["nodejs_20", "npm-10_x"]
+nixPkgs = ["nodejs_20"]
 
-[phases.build]
+[phases.build] 
 cmds = ["npm ci", "npm run build", "cp -r dist server/"]
 
 [phases.start]
