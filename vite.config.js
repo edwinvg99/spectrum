@@ -19,6 +19,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'esbuild', // Cambiar de 'terser' a 'esbuild'
+    minify: 'esbuild', // Usar esbuild en lugar de terser
+    cssMinify: 'esbuild', // Evitar lightningcss
+  },
+  css: {
+    transformer: 'postcss' // Usar PostCSS en lugar de Lightning CSS
   }
 })
