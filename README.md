@@ -38,7 +38,7 @@ Una aplicación web moderna para visualizar estadísticas de jugadores de Valora
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/tu-usuario/valorant-stats-app.git
+git clone https://github.com/edwinvg99/spectrum.git
 cd valorant-stats-app
 ```
 
@@ -125,7 +125,6 @@ valorant-stats-app/
 
 ### 🎮 Catálogo de Agentes
 - Lista completa de agentes de Valorant
-- Información detallada de habilidades
 - Diseño visual atractivo con gradientes dinámicos
 - Datos en español (es-MX)
 
