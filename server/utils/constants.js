@@ -57,8 +57,11 @@ export const PLAYERS = [
 // ================================
 // CONFIGURACIÓN DE BACKEND
 // ================================
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const PRODUCTION_URL = 'https://spectrum.up.railway.app';
+
 export const BACKEND_CONFIG = {
-  BASE_URL: "http://localhost:3001",
+  BASE_URL: isDevelopment ? "http://localhost:3001" : PRODUCTION_URL,
   API_PREFIX: "/api/valorant",
   HEALTH_ENDPOINT: "/api/health",
   TIMEOUT: 15000,

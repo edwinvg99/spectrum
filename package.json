@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:full": "npm run build && npm run copy-build",
+    "copy-build": "cp -r dist server/",
+    "start:prod": "cd server && NODE_ENV=production npm start"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.8",

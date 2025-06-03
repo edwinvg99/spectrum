@@ -1,44 +1,63 @@
 // server/server.js
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const app = express();
-const PORT = 3001;
-require('dotenv').config(); // Esto carga el archivo .env
- 
+const PORT = process.env.PORT || 3001;
+
+require('dotenv').config();
+
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: [
+    'http://localhost:5173', 
+    'http://localhost:3000',
+    'https://spectrum.up.railway.app' // Agregar tu dominio de Railway
+  ],
   credentials: true
 }));
 app.use(express.json());
 
-// Rutas de Valorant API
+// Servir archivos estáticos del frontend en producción
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../dist')));
+}
+
+// Rutas de API
 app.use('/api/valorant', require('./routes/valorant'));
 
-// Endpoint para verificar estado del servidor
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'Servidor funcionando correctamente',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// Manejo de errores global
+// En producción, servir el frontend para todas las rutas no-API
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  });
+}
+
+// Manejo de errores
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Algo salió mal en el servidor!' });
 });
 
-// Manejo de rutas no encontradas
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
-  console.log(`📡 Frontend esperado en http://localhost:5173`);
-  console.log(`🏥 Health check disponible en http://localhost:${PORT}/api/health`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+  console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
+  if (process.env.NODE_ENV === 'production') {
+    console.log(`🔗 Aplicación disponible en: https://spectrum.up.railway.app`);
+  }
 });
 
 const router = express.Router();
