@@ -53,7 +53,7 @@ function HomePage() {
   return (
     <div className="homepage-container">
         <video autoPlay muted loop playsInline className="background-video">
-          <source src="/videos/valoFONDO-1.webm" type="video/webm" />
+          <source src="/videos/valoFONDO.webm" type="video/webm" />
         </video>
 
       <div className="overlay" />
