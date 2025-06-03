@@ -1,0 +1,12 @@
+# nixpacks.toml
+[variables]
+NODE_VERSION = "20"
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "npm-10_x"]
+
+[phases.build]
+cmds = ["npm ci", "npm run build", "cp -r dist server/"]
+
+[phases.start]
+cmd = "cd server && npm start"
