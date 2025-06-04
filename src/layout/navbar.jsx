@@ -164,9 +164,9 @@ function Navbar() {
             </li>
             <li>
               <Link
-                to="/"
+                to="/mapas"
                 className={`${getLinkClass(
-                  "/integrantes"
+                  "/"
                 )} block py-2 px-3 md:p-0 rounded-sm`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >

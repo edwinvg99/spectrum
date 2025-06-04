@@ -15,9 +15,9 @@ const HeaderSection = ({
         {/* <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-4 tracking-tight leading-tight">
           VALORANT STATS
         </h1> */}
-        <p className=" mt-5 text-transparent text-3xl  xl:text-4xl font-black bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text  tracking-tight leading-tight ">
-          Estadísticas en tiempo real de nuestros jugadores.
-        </p>
+ <p className="texto-integrantes mt-5 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text ">
+  Estadísticas en tiempo real de nuestros jugadores.
+</p>
       </div>
 
       {/* Caja de Métricas y Controles - Flotante/Compacta */}

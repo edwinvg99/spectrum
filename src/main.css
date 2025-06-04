@@ -23,3 +23,19 @@ html, body {
 
 }
 
+.nombre-mapa {
+  text-shadow:  0 0 10px rgb(0, 0, 0)
+}
+
+.texto-integrantes{
+    font-size: clamp(1rem, 4vw, 2rem);
+  font-weight: bold;
+  font-family: "Courier New", monospace;
+  color: #ffffff;
+  text-shadow: 
+    0 0 10px #00f7ff,
+    0 0 20px #00f7ff,
+    0 0 40px #00f7ff;
+  letter-spacing: 0.1em;
+  margin-bottom: -10px;
+}
