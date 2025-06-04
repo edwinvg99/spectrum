@@ -72,8 +72,8 @@ const PlayerCard = ({ playerData, mmrData, isLoading, error, playerInfo }) => {
       </div>
 
       {/* ELO y Rango */}
-      <div className="absolute top-38 left-1/2 transform -translate-x-1/2 z-20">
-        <span className="text-4xl  inline-block text-shadow-lg text-shadow-sky-400 text-slate-900 px-4 py-1 rounded-md font-extrabold">
+      <div className="contenedor-elo absolute left-1/2 transform -translate-x-1/2 z-20">
+        <span className="sombra-elo text-4xl  inline-block  text-slate-900 px-4 py-1 rounded-md font-extrabold">
           {elo}
         </span>
       </div>
@@ -88,7 +88,7 @@ const PlayerCard = ({ playerData, mmrData, isLoading, error, playerInfo }) => {
           }}
         />
       </div>
-            <div className="absolute top-10 left-57 transform -translate-x-1/2 z-20 ">
+            <div className="absolute top-10 left-56 transform -translate-x-1/2 z-20  ">
         <img
           src={rankImage}
           alt={`${currentTier} rank`}
