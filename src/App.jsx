@@ -10,7 +10,8 @@ import PlayerGrid from "./integrantes/components/PlayerGrid";
 import PersonajesValorant from "./ValorantData/agentes/components/agenteValorant";
 import Navbar from "./layout/navbar"; // Asegúrate de que el path a Navbar es correcto
 import HomePage from "./layout/HomePage"; // Asegúrate de que el path a HomePage es correcto
-import "./App.css";
+// import "./App.css";
+import './App.css';
 
 const App = () => {
   return (
