@@ -13,9 +13,6 @@ export function useMaps(mapasExcluidos = []) {
                 const json = await res.json();
                 let data = json.data;
 
-                // 🔍 DEBUG: Ver todos los nombres disponibles
-                console.log("Nombres de mapas disponibles:", data.map(mapa => mapa.displayName));
-
                 // Filtrar mapas excluidos
                 if (mapasExcluidos.length > 0) {
                     console.log("Mapas a excluir:", mapasExcluidos);
