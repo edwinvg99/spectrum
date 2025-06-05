@@ -17,11 +17,9 @@ export function useMaps(mapasExcluidos = []) {
 
                 // Filtrar mapas excluidos
                 if (mapasExcluidos.length > 0) {
-                    console.log("Mapas a excluir:", mapasExcluidos);
                     data = data.filter(mapa => 
                         !mapasExcluidos.includes(mapa.displayName)
                     );
-                    console.log("Mapas después del filtro:", data.map(mapa => mapa.displayName));
                 }
 
                 const mapasFiltrados = data.map((mapas) => ({

@@ -6,221 +6,180 @@ function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const baseLinkClasses = `
-    text-white
-    font-bold
-    tracking-wider
-    transition-all
-    duration-300
-    ease-in-out
-    hover:text-sky-400
-    hover:scale-105
-    hover:drop-shadow-lg
-    text-xl
-    sm:text-1xl
-    md:text-1xl
-    lg:text-2xl
-    xl:text-2xl
+    text-white font-bold tracking-wider transition-all duration-300 ease-in-out
+    hover:text-sky-400 hover:scale-105 hover:drop-shadow-lg
+    text-lg sm:text-xl md:text-xl lg:text-2xl xl:text-2xl
   `;
 
-  const activeLinkClasses =
-    "font-extrabold text-sky-400 border-b-1 border-sky-400";
-  const inactiveLinkClasses = "";
+  const activeLinkClasses = "font-extrabold text-sky-400 border-b-2 border-sky-400";
 
   const getLinkClass = (path) => {
     return `${baseLinkClasses} ${
-      location.pathname === path ? activeLinkClasses : inactiveLinkClasses
+      location.pathname === path ? activeLinkClasses : ""
     }`;
   };
 
   return (
-    <nav className="bg-gradient-to-t from-black to-slate-900 shadow-xl fixed w-full top-0 z-50">
-      <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
-        {/* Logo - Lado izquierdo */}
-        <Link
-          to="/"
-          className="
-            flex items-center space-x-3
-            text-white            
-            font-bold          
-            tracking-wider          
-            transition-all          
-            duration-300            
-            ease-in-out             
-            hover:text-sky-400      
-            hover:scale-105         
-            hover:drop-shadow-lg    
-            text-xl                
-            sm:text-2xl            
-            md:text-3xl             
-            lg:text-4xl             
-            xl:text-4xl            
-          "
-        >
-          SPECTRUM
-        </Link>
-
-        {/* Botón CTA y Menú móvil - Lado derecho */}
-        <div className="flex md:order-2 space-x-3 md:space-x-0">
-          {/* Botón CTA - Solo visible en desktop */}
-          <button
-            type="button"
-            className="
-              hidden md:block
-              text-white bg-slate-800 hover:bg-sky-700 
-              focus:ring-4 focus:outline-none focus:ring-sky-300 
-              font-medium rounded-lg text-sm px-4 py-2 text-center
-              transition-all duration-300 ease-in-out
-              hover:scale-105
-            "
+    <nav className="bg-gradient-to-r from-black via-slate-900 to-black shadow-2xl fixed w-full top-0 z-50 border-b border-slate-700/50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo - Lado izquierdo */}
+          <Link
+            to="/"
+            className="flex items-center space-x-3 transition-all duration-300 ease-in-out hover:scale-105"
           >
+            {/* Opción 1: Logo como texto estilizado */}
+            {/* <div className="flex items-center">
+              <span className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">
+                SPECTRUM
+              </span>
+              <div className="w-2 h-2 bg-sky-400 rounded-full ml-1 animate-pulse"></div>
+            </div> */}
+
+            {/* Opción 2: Si tienes la imagen en public/ */}
+            
+            <img
+              src="/src/assets/images/spectrumColor.svg"
+              alt="Spectrum Logo"
+              className="h-8 w-auto"
+            />
+            *
+          </Link>
+
+          {/* Menú Desktop - Centro */}
+          <div className="hidden md:block">
+            <div className="ml-10 flex items-baseline space-x-8">
+              <Link
+                to="/"
+                className={`${getLinkClass("/")} px-3 py-2 rounded-md`}
+              >
+                Home
+              </Link>
+              <Link
+                to="/mapas"
+                className={`${getLinkClass("/mapas")} px-3 py-2 rounded-md`}
+              >
+                Mapas
+              </Link>
+              <Link
+                to="/valorant"
+                className={`${getLinkClass("/valorant")} px-3 py-2 rounded-md`}
+              >
+                Noticias
+              </Link>
+              <Link
+                to="/agentes"
+                className={`${getLinkClass("/agentes")} px-3 py-2 rounded-md`}
+              >
+                Agentes
+              </Link>
+            </div>
+          </div>
+
+          {/* Botón CTA Desktop - Lado derecho */}
+          <div className="hidden md:block">
             <Link
               to="/integrantes"
-              className={`${getLinkClass(
-                "/integrantes"
-              )} block py-2 px-3 md:p-0 rounded-sm hover:text-white `}
+              className="bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-700 hover:to-sky-800 
+                         text-white font-semibold px-6 py-2 rounded-lg transition-all duration-300 
+                         hover:scale-105 hover:shadow-lg border border-sky-500/50"
+            >
+              Integrantes
+            </Link>
+          </div>
+
+          {/* Botón menú móvil */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="bg-slate-800 inline-flex items-center justify-center p-2 rounded-md 
+                         text-slate-300 hover:text-white hover:bg-slate-700 
+                         focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-500
+                         transition-all duration-200"
+              aria-expanded="false"
+            >
+              <span className="sr-only">Abrir menú principal</span>
+              {!isMobileMenuOpen ? (
+                <svg
+                  className="block h-6 w-6"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="block h-6 w-6"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Menú Móvil */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50">
+          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+            <Link
+              to="/"
+              className={`${getLinkClass("/")}
+              block px-3 py-2 rounded-md`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Home
+            </Link>
+            <Link
+              to="/mapas"
+              className={`${getLinkClass("/mapas")} block px-3 py-2 rounded-md`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Mapas
+            </Link>
+            <Link
+              to="/valorant"
+              className={`${getLinkClass("/valorant")} block px-3 py-2 rounded-md`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Noticias
+            </Link>
+            <Link
+              to="/agentes"
+              className={`${getLinkClass("/agentes")} block px-3 py-2 rounded-md`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Agentes
+            </Link>
+            <Link
+              to="/integrantes"
+              className="bg-gradient-to-r from-sky-600 to-sky-700 text-white font-semibold 
+                         block px-3 py-2 rounded-md mt-4 text-center
+                         hover:from-sky-700 hover:to-sky-800 transition-all duration-300"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Integrantes
             </Link>
-          </button>
-
-          {/* Botón de menú móvil */}
-          <button
-            type="button"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="
-              inline-flex items-center p-2 w-10 h-10 justify-center 
-              text-sm text-slate-400 rounded-lg md:hidden 
-              hover:bg-slate-700 focus:outline-none focus:ring-2 
-              focus:ring-slate-600 hover:text-white
-              transition-all duration-300
-            "
-            aria-controls="navbar-menu"
-            aria-expanded={isMobileMenuOpen ? "true" : "false"}
-          >
-            <span className="sr-only">Abrir menú principal</span>
-            {!isMobileMenuOpen ? (
-              <svg
-                className="w-5 h-5"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 17 14"
-              >
-                <path
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M1 1h15M1 7h15M1 13h15"
-                />
-              </svg>
-            ) : (
-              <svg
-                className="w-5 h-5"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            )}
-          </button>
+          </div>
         </div>
-
-        {/* Menú de navegación - Centro */}
-        <div
-          className={`
-            items-center justify-between w-full md:flex md:w-auto md:order-1
-            ${isMobileMenuOpen ? "block" : "hidden"}
-          `}
-          id="navbar-menu"
-        >
-          <ul
-            className="
-            flex flex-col font-medium p-4 md:p-0 mt-4 
-            border border-slate-700 rounded-lg bg-slate-800/50 
-            md:space-x-8 md:flex-row md:mt-0 md:border-0 md:bg-transparent
-            backdrop-blur-sm
-          "
-          >
-            <li>
-              <Link
-                to="/"
-                className={`${getLinkClass(
-                  "/"
-                )} block py-2 px-3 md:p-0 rounded-sm`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/mapas"
-                className={`${getLinkClass(
-                  "/"
-                )} block py-2 px-3 md:p-0 rounded-sm`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Mapas
-              </Link>
-            </li>
-                        <li>
-              <Link
-                to="/noticias"
-                className={`${getLinkClass(
-                  "/"
-                )} block py-2 px-3 md:p-0 rounded-sm`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Noticias
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/agentes"
-                className={`${getLinkClass(
-                  "/agentes"
-                )} block py-2 px-3 md:p-0 rounded-sm`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Agentes
-              </Link>
-            </li>
-            {/* Botón CTA en móvil */}
-            <li className="md:hidden mt-2">
-              <button
-                type="button"
-                className="
-                  w-full text-white bg-slate-600 hover:bg-sky-700 hover:text-slate-900
-                  focus:ring-4 focus:outline-none 
-                  font-medium rounded-lg text-sm px-4 py-2 text-center
-                  transition-all duration-300 ease-in-out
-                "
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <Link
-                  to="/integrantes"
-                  className={`${getLinkClass(
-                    "/integrantes"
-                  )} block py-2 px-3 md:p-0 rounded-sm`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  integrantes
-                </Link>
-              </button>
-            </li>
-          </ul>
-        </div>
-      </div>
+      )}
     </nav>
   );
 }

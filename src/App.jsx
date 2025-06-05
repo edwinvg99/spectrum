@@ -11,7 +11,7 @@ import PersonajesValorant from "./ValorantData/agentes/components/agenteValorant
 import MapasValorant from "./ValorantData/mapas/components/mapsValorant";
 import Navbar from "./layout/navbar"; // Asegúrate de que el path a Navbar es correcto
 import HomePage from "./layout/HomePage"; // Asegúrate de que el path a HomePage es correcto
-import NoticiasValorantSection from "./ValorantData/noticias/components/newsValorant";
+import MainContentLayout from "./ValorantData/noticias/components/MainContentLayout";
 // import "./App.css";
 import './App.css';
 
@@ -25,8 +25,9 @@ const App = () => {
           <Route path="/integrantes" element={<PlayerGrid />} />
           <Route path="/agentes" element={<PersonajesValorant />} />
           <Route path="/mapas" element={<MapasValorant/>} />
-          <Route path="/noticias" element={<NoticiasValorantSection />} />
+          <Route path="/valorant" element={<MainContentLayout />} />
           <Route path="*" element={<h2>404 - Página no encontrada</h2>} />
+
         </Routes>
       </div>
     </Router>
