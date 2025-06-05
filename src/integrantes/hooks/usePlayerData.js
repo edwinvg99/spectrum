@@ -11,33 +11,42 @@ export const usePlayerData = () => {
   const [cacheStatus, setCacheStatus] = useState(null);
   const [isUpdatingCache, setIsUpdatingCache] = useState(false);
 
-  // Función para actualizar el estado del caché
   const updateCacheStatus = useCallback(() => {
     const status = cacheService.getCacheStatus();
     setCacheStatus(status);
   }, []);
 
-  // Verificar estado del servidor
   const checkServerHealth = async () => {
     console.log('🏥 Verificando estado del servidor...');
-    
     const healthCheck = await valorantAPI.checkServerHealth();
     setServerStatus(healthCheck);
-    
     if (healthCheck.status !== 'OK') {
       throw new Error('Servidor backend no disponible');
     }
-    
     console.log('✅ Servidor backend funcionando correctamente');
   };
 
-  // Cargar datos de jugadores
+  // Función para cargar y ORDENAR datos de jugadores
   const loadPlayersData = async (forceRefresh = false) => {
     console.log('📊 Cargando datos de jugadores...');
     
     const result = await valorantAPI.getPlayersDataWithCache(PLAYERS, forceRefresh);
     
-    setPlayersData(result.data);
+    // --- INICIO DE LA LÓGICA DE ORDENAMIENTO ---
+    // Clonamos el array para no mutar el original antes de ordenar
+    const sortedPlayers = [...result.data].sort((a, b) => {
+      // Accedemos al ELO de mmrData de cada jugador.
+      // Si el ELO no está disponible, usamos 0 para el propósito de ordenamiento.
+      const eloA = a.mmrData?.elo || 0;
+      const eloB = b.mmrData?.elo || 0;
+      
+      // Ordena de mayor ELO a menor ELO (descendente)
+      return eloB - eloA;
+    });
+
+    setPlayersData(sortedPlayers); // Establecemos los datos YA ORDENADOS
+    // --- FIN DE LA LÓGICA DE ORDENAMIENTO ---
+
     updateCacheStatus();
     
     if (result.fromCache) {
@@ -52,16 +61,22 @@ export const usePlayerData = () => {
     console.log('🎉 Datos de jugadores cargados exitosamente');
   };
 
-  // Cargar datos desde caché
+  // Cargar datos desde caché (también ordenaremos aquí si es necesario)
   const loadPlayersDataFromCache = () => {
     const cachedResult = cacheService.getPlayersData();
     if (cachedResult) {
-      setPlayersData(cachedResult.data);
+      // Ordenamos los datos del caché antes de establecerlos en el estado
+      const sortedPlayers = [...cachedResult.data].sort((a, b) => {
+        const eloA = a.mmrData?.elo || 0;
+        const eloB = b.mmrData?.elo || 0;
+        return eloB - eloA;
+      });
+      setPlayersData(sortedPlayers);
       updateCacheStatus();
     }
   };
 
-  // Inicializar aplicación
+  // Resto del hook permanece igual...
   const initializeApp = async () => {
     console.log('🚀 Inicializando aplicación...');
     setLoadingState(LOADING_STATES.LOADING);
@@ -78,36 +93,31 @@ export const usePlayerData = () => {
     }
   };
 
-  // Manejar refresh
   const handleRefresh = (forceRefresh = true) => {
     console.log(`🔄 ${forceRefresh ? 'Refresh forzado' : 'Refresh normal'}...`);
     setIsUpdatingCache(forceRefresh);
     loadPlayersData(forceRefresh);
   };
 
-  // Limpiar caché
   const handleClearCache = () => {
     cacheService.clearCache();
     updateCacheStatus();
     handleRefresh(true);
   };
 
-  // Configurar efectos
   useEffect(() => {
     initializeApp();
     updateCacheStatus();
     
-    // Escuchar actualizaciones de caché en segundo plano
     const handleCacheUpdate = () => {
       console.log('🔔 Caché actualizado, refrescando datos...');
-      loadPlayersDataFromCache();
+      loadPlayersDataFromCache(); // Esto ahora ordenará
       updateCacheStatus();
       setIsUpdatingCache(false);
     };
 
     window.addEventListener('cacheUpdated', handleCacheUpdate);
     
-    // Configurar actualización automática cada 5 minutos
     const autoUpdateInterval = setInterval(() => {
       if (cacheService.getCacheStatus().isStale) {
         console.log('⏰ Actualización automática programada');
@@ -122,15 +132,12 @@ export const usePlayerData = () => {
   }, [updateCacheStatus]);
 
   return {
-    // Estados
     playersData,
     loadingState,
     error,
     serverStatus,
     cacheStatus,
     isUpdatingCache,
-    
-    // Funciones
     handleRefresh,
     handleClearCache,
     initializeApp

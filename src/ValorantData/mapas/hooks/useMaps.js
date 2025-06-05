@@ -13,6 +13,8 @@ export function useMaps(mapasExcluidos = []) {
                 const json = await res.json();
                 let data = json.data;
 
+              
+
                 // Filtrar mapas excluidos
                 if (mapasExcluidos.length > 0) {
                     console.log("Mapas a excluir:", mapasExcluidos);
