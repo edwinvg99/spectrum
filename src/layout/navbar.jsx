@@ -39,7 +39,7 @@ function Navbar() {
             {/* Opción 2: Si tienes la imagen en public/ */}
             
             <img
-              src="/src/assets/images/spectrumColor.svg"
+              src="/public/image/spectrumColor.svg"
               alt="Spectrum Logo"
               className="h-8 w-auto"
             />
