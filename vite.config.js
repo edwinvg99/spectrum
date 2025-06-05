@@ -6,10 +6,19 @@ export default defineConfig({
   plugins: [svgr(), react()],
   server: {
     proxy: {
-      "/api": {
+      // Proxy para tu backend local (http://localhost:3001)
+      "/api-local": {
         target: "http://localhost:3001",
         changeOrigin: true,
         secure: false,
+        rewrite: (path) => path.replace(/^\/api-local/, ""),
+      },
+      // Proxy para la API de noticias de Valorant
+      "/api-valorant": {
+        target: "https://vlrggapi.vercel.app",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api-valorant/, ""),
       },
     },
   },

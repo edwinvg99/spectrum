@@ -173,6 +173,17 @@ function Navbar() {
                 Mapas
               </Link>
             </li>
+                        <li>
+              <Link
+                to="/noticias"
+                className={`${getLinkClass(
+                  "/"
+                )} block py-2 px-3 md:p-0 rounded-sm`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Noticias
+              </Link>
+            </li>
             <li>
               <Link
                 to="/agentes"
