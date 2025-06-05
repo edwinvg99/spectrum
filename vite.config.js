@@ -35,7 +35,11 @@ export default defineConfig({
     sourcemap: false,
     minify: "esbuild",
     cssMinify: "esbuild",
+    // ✅ Asegurar que los assets públicos se copien correctamente
+    copyPublicDir: true,
   },
+  // ✅ Configuración explícita para archivos públicos
+  publicDir: 'public',
   css: {
     postcss: {
       plugins: [],

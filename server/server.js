@@ -31,6 +31,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 if (process.env.NODE_ENV === 'production') {
   console.log('📁 Sirviendo archivos estáticos desde:', path.join(__dirname, '../dist'));
   app.use(express.static(path.join(__dirname, '../dist')));
+  
+  // ✅ AGREGAR ESTA LÍNEA - Servir archivos de public
+  console.log('📁 Sirviendo archivos públicos desde:', path.join(__dirname, '../public'));
+  app.use(express.static(path.join(__dirname, '../public')));
 }
 
 // Health check endpoint - DEBE estar antes de las otras rutas
