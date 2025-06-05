@@ -1,9 +1,9 @@
-const express = require('express');
-const fetch = require('node-fetch');
+const express = require("express");
+const fetch = require("node-fetch");
 const router = express.Router();
 
 // Proxy para noticias de Valorant
-router.get('/news', async (req, res) => {
+router.get("/news", async (req, res) => {
   try {
     const url = `https://vlrggapi.vercel.app/news`;
     const response = await fetch(url);
