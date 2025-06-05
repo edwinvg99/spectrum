@@ -13,7 +13,7 @@ export function useEventosValorant() {
         // para evitar problemas de CORS.
         // La API de eventos es diferente, así que usaremos un nuevo prefijo,
         // por ejemplo, '/api-orlandomm'. Lo configuraremos en vite.config.js después.
-        const res = await fetch('/api-orlandomm/v1/events?status=upcoming&region=all');
+        const res = await fetch('https://vlr.orlandomm.net/api/v1/events?status=upcoming&region=all');
         
         if (!res.ok) {
           throw new Error(`Error HTTP: ${res.status} - ${res.statusText}`);
