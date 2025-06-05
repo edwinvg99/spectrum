@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Capa_1" data-name="Capa 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 566.93 475.68">
+  <defs>
+    <style>
+      .cls-1 {
+        clip-path: url(#clippath-1);
+      }
+
+      .cls-2 {
+        clip-path: url(#clippath);
+      }
+
+      .cls-3 {
+        fill: none;
+      }
+
+      .cls-4 {
+        fill: url(#Degradado_sin_nombre_481);
+      }
+    </style>
+    <clipPath id="clippath">
+      <polygon class="cls-3" points="291.55 475.68 291.55 161.34 405.86 161.34 380.05 205.94 332.68 205.94 332.68 320.75 424.86 161.52 291.55 68.38 291.55 0 566.93 0 489.9 133.06 455.33 108.88 492.54 44.6 333.46 44.6 481.31 147.9 291.55 475.68"/>
+    </clipPath>
+    <linearGradient id="Degradado_sin_nombre_481" data-name="Degradado sin nombre 481" x1="69.02" y1="206.04" x2="584.88" y2="206.04" gradientTransform="translate(-43.49 31.8)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00ffa5"/>
+      <stop offset="1" stop-color="#009cb8"/>
+    </linearGradient>
+    <clipPath id="clippath-1">
+      <polygon class="cls-3" points="275.38 475.68 275.38 161.34 161.07 161.34 186.88 205.94 234.25 205.94 234.25 320.75 142.07 161.52 275.38 68.38 275.38 0 0 0 77.03 133.06 111.6 108.88 74.39 44.6 233.47 44.6 85.62 147.9 275.38 475.68"/>
+    </clipPath>
+  </defs>
+  <g class="cls-2">
+    <rect class="cls-4" x="25.54" y="-55.28" width="515.86" height="586.24" transform="translate(521.3 -45.63) rotate(90)"/>
+  </g>
+  <g class="cls-1">
+    <rect class="cls-4" x="25.54" y="-55.28" width="515.86" height="586.24" transform="translate(521.3 -45.63) rotate(90)"/>
+  </g>
+</svg>
