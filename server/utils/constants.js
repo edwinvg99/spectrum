@@ -52,13 +52,23 @@ export const PLAYERS = [
     tag: "ARQ22",
     region: "latam",
   },
+  {
+    name: "COL EL Diablo",
+    tag: "CLDAS",
+    region: "latam",
+  },
+  {
+    name: "VeIox",
+    tag: "Rolo",
+    region: "latam",
+  },
 ];
 
 // ================================
 // CONFIGURACIÓN DE BACKEND
 // ================================
-const isDevelopment = process.env.NODE_ENV !== 'production';
-const PRODUCTION_URL = 'https://spectrum.up.railway.app';
+const isDevelopment = process.env.NODE_ENV !== "production";
+const PRODUCTION_URL = "https://spectrum.up.railway.app";
 
 export const BACKEND_CONFIG = {
   BASE_URL: isDevelopment ? "http://localhost:3001" : PRODUCTION_URL,
@@ -73,14 +83,16 @@ export const BACKEND_CONFIG = {
 export const API_URLS = {
   BASE: "https://api.henrikdev.xyz",
   ACCOUNT: (name, tag) => `/valorant/v1/account/${name}/${tag}`,
-  MMR_HISTORY: (region, name, tag) => `/valorant/v1/mmr-history/${region}/${name}/${tag}`,
+  MMR_HISTORY: (region, name, tag) =>
+    `/valorant/v1/mmr-history/${region}/${name}/${tag}`,
 };
 
 // ================================
 // IMÁGENES Y RECURSOS
 // ================================
 export const DEFAULT_IMAGES = {
-  UNRANKED_ICON: "https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/0/largeicon.png",
+  UNRANKED_ICON:
+    "https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/0/largeicon.png",
   ERROR_CARD: "https://placehold.co/600x200/ef4444/ffffff?text=Error+Cargando",
   ERROR_RANK: "https://placehold.co/64x64/ef4444/ffffff?text=!",
   LOADING_CARD: "https://placehold.co/600x200/64748b/ffffff?text=Cargando...",
@@ -138,7 +150,7 @@ export const CACHE_CONFIG = {
   TTL: 5 * 60 * 1000, // 5 minutos
   MAX_AGE: 30 * 60 * 1000, // 30 minutos máximo
   AUTO_UPDATE_INTERVAL: 5 * 60 * 1000, // Verificar cada 5 minutos
-  VERSION: '1.0.0'
+  VERSION: "1.0.0",
 };
 
 // ================================
