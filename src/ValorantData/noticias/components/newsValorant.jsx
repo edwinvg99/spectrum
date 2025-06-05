@@ -33,7 +33,7 @@ function NoticiasValorantSection() {
           {noticias.map((noticia, index) => (
             <a
               key={index}
-              href={`https://www.vlr.gg${noticia.url_path}`} // Asegúrate de tener la URL completa
+              href={`${noticia.url_path}`} // Asegúrate de tener la URL completa
               target="_blank"
               rel="noopener noreferrer"
               className="block group bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
