@@ -49,6 +49,7 @@ app.get('/api/health', (req, res) => {
 // Rutas de API
 app.use('/api/valorant', require('./routes/valorant'));
 app.use('/api-orlandomm', require('./routes/orlandomm'));
+app.use('/api-valorant', require('./routes/valorantNews'));
 
 // En producción, servir React para todas las rutas que no sean API
 if (process.env.NODE_ENV === 'production') {
