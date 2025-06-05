@@ -29,14 +29,6 @@ function Navbar() {
             to="/"
             className="flex items-center space-x-3 transition-all duration-300 ease-in-out hover:scale-105"
           >
-            {/* Opción 1: Logo como texto estilizado */}
-            {/* <div className="flex items-center">
-              <span className="text-2xl sm:text-3xl lg:text-4xl font-black text-white">
-                SPECTRUM
-              </span>
-              <div className="w-2 h-2 bg-sky-400 rounded-full ml-1 animate-pulse"></div>
-            </div> */}
-            {/* Opción 2: Si tienes la imagen en public/ */}
             <img
               src="/spectrumColor.svg"
               alt="Spectrum Logo"
@@ -60,6 +52,12 @@ function Navbar() {
                 className={`${getLinkClass("/mapas")} px-3 py-2 rounded-md`}
               >
                 Mapas
+              </Link>
+              <Link
+                to="/tienda"
+                className={`${getLinkClass("/tienda")} px-3 py-2 rounded-md`}
+              >
+                tienda
               </Link>
               <Link
                 to="/valorant"

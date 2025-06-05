@@ -68,7 +68,7 @@ function HomePage() {
           </div>
         ) : (
           <img
-            src="/spectrumColor.svg"
+            src="/LOGO.png"
             alt="Logo Spectrum home"
             className="logo"
           />

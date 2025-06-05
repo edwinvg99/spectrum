@@ -27,8 +27,8 @@ const RANK_COLORS = {
   "Immortal 1": "#FF4500",
   "Immortal 2": "#FF4500",
   "Immortal 3": "#FF4500",
-  "Radiant": "#FF4500",
-  "Unranked": "#4A5568",
+  Radiant: "#FF4500",
+  Unranked: "#4A5568",
 };
 
 const getRankColor = (rankName) => {
@@ -87,12 +87,12 @@ const PlayerCard = ({ playerData, mmrData, isLoading, error, playerInfo }) => {
 
   // Estilos dinámicos para el hover
   const cardHoverStyle = {
-    '--rank-color': logoColor,
-    '--rank-shadow': `${logoColor}40`, // Color con transparencia para la sombra
+    "--rank-color": logoColor,
+    "--rank-shadow": `${logoColor}40`, // Color con transparencia para la sombra
   };
 
   return (
-    <div 
+    <div
       className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-700 transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-lg relative pb-4 group"
       style={cardHoverStyle}
       onMouseEnter={(e) => {
@@ -102,8 +102,8 @@ const PlayerCard = ({ playerData, mmrData, isLoading, error, playerInfo }) => {
       }}
       onMouseLeave={(e) => {
         // Restaurar el color original del borde
-        e.currentTarget.style.borderColor = '#374151'; // slate-700
-        e.currentTarget.style.boxShadow = '';
+        e.currentTarget.style.borderColor = "#374151"; // slate-700
+        e.currentTarget.style.boxShadow = "";
       }}
     >
       {/* Contenedor de la imagen de fondo y el degradado */}
@@ -117,7 +117,15 @@ const PlayerCard = ({ playerData, mmrData, isLoading, error, playerInfo }) => {
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-slate-900/40"></div>
 
         {/* Logo Spectrum grande en la esquina superior derecha (decorativo) */}
-        <div className="absolute top-4 right-[-20px] transform translate-x-1/2 z-10 opacity-10 rotate-[-15deg] group-hover:opacity-20 transition-opacity">
+        <div className="absolute -top-5 right-[-20px] transform translate-x-1/2 z-10 opacity-10 group-hover:opacity-20 transition-opacity">
+          <SpectrumLogo
+            className="w-56 h-56 object-contain"
+            fill={logoColor}
+            stroke={logoColor}
+          />
+        </div>
+
+        <div className="absolute -top-5 left-[-250px] transform translate-x-1/2 z-10 opacity-10 group-hover:opacity-20 transition-opacity">
           <SpectrumLogo
             className="w-56 h-56 object-contain"
             fill={logoColor}
@@ -131,10 +139,10 @@ const PlayerCard = ({ playerData, mmrData, isLoading, error, playerInfo }) => {
             src={playerAvatar}
             alt={`${playerData.name} avatar`}
             className="w-32 h-32 rounded-full border-4 border-slate-800 object-cover ring-4 shadow-2xl group-hover:scale-110 transition-transform duration-300"
-            style={{ 
-              '--tw-ring-color': logoColor, 
-              'borderColor': logoColor + '90',
-              'boxShadow': `0 25px 50px -12px ${logoColor}90`
+            style={{
+              "--tw-ring-color": logoColor,
+              borderColor: logoColor + "90",
+              boxShadow: `0 25px 50px -12px ${logoColor}90`,
             }}
             onError={(e) => {
               e.target.src = DEFAULT_IMAGES.DEFAULT_AVATAR;
@@ -155,20 +163,20 @@ const PlayerCard = ({ playerData, mmrData, isLoading, error, playerInfo }) => {
         </div>
 
         {/* ELO */}
-        <div 
+        <div
           className="absolute bottom-[-20px] left-1/2 transform -translate-x-1/2 z-40 bg-slate-900 px-5 py-2 rounded-full shadow-lg group-hover:scale-110 transition-transform duration-300"
-          style={{ 
-            borderColor: logoColor, 
-            borderWidth: '1px',
-            boxShadow: `0 10px 15px -3px ${logoColor}40`
+          style={{
+            borderColor: logoColor,
+            borderWidth: "1px",
+            boxShadow: `0 10px 15px -3px ${logoColor}40`,
           }}
         >
-          <span 
+          <span
             className="text-4xl font-extrabold group-hover:animate-pulse"
-            style={{ 
-              color: logoColor, 
+            style={{
+              color: logoColor,
               textShadow: `0 0 8px ${logoColor}60`,
-              filter: `drop-shadow(0 0 6px ${logoColor}80)`
+              filter: `drop-shadow(0 0 6px ${logoColor}80)`,
             }}
           >
             {elo}
@@ -180,7 +188,9 @@ const PlayerCard = ({ playerData, mmrData, isLoading, error, playerInfo }) => {
       <div className="text-center pt-10 pb-4 relative z-10">
         <h2 className="text-3xl font-extrabold text-slate-100 group-hover:scale-105 transition-transform duration-300">
           {playerData.name}
-          <span className="ml-1" style={{ color: logoColor }}>#{playerData.tag}</span>
+          <span className="ml-1" style={{ color: logoColor }}>
+            #{playerData.tag}
+          </span>
         </h2>
         <p className="text-md text-slate-400 mt-1 mb-4 group-hover:text-slate-300 transition-colors">
           {currentTier}
@@ -188,16 +198,16 @@ const PlayerCard = ({ playerData, mmrData, isLoading, error, playerInfo }) => {
 
         {/* Contenedores de Nivel y Región */}
         <div className="flex w-full px-4 gap-4 mt-6">
-          <div 
+          <div
             className="flex flex-col flex-1 bg-slate-800 p-4 rounded-xl border border-slate-700 transition-all duration-300 group-hover:bg-slate-700 group-hover:scale-105"
             style={{
-              '--hover-border-color': logoColor + '80'
+              "--hover-border-color": logoColor + "80",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = logoColor + '80';
+              e.currentTarget.style.borderColor = logoColor + "80";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#374151';
+              e.currentTarget.style.borderColor = "#374151";
             }}
           >
             <span className="block text-sm text-slate-400 uppercase tracking-wider mb-1">
@@ -208,13 +218,13 @@ const PlayerCard = ({ playerData, mmrData, isLoading, error, playerInfo }) => {
             </span>
           </div>
 
-          <div 
+          <div
             className="flex flex-col flex-1 bg-slate-800 p-4 rounded-xl border border-slate-700 transition-all duration-300 group-hover:bg-slate-700 group-hover:scale-105"
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = logoColor + '80';
+              e.currentTarget.style.borderColor = logoColor + "80";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#374151';
+              e.currentTarget.style.borderColor = "#374151";
             }}
           >
             <span className="block text-sm text-slate-400 uppercase tracking-wider mb-1">
@@ -226,10 +236,17 @@ const PlayerCard = ({ playerData, mmrData, isLoading, error, playerInfo }) => {
           </div>
         </div>
 
-        {/* Logo Spectrum más pequeño */}
-        <div className="absolute bottom-[-15px] left-[-15px] transform -translate-x-1/2 z-0 opacity-10 rotate-[15deg] group-hover:opacity-20 transition-opacity">
+        <div className="absolute bottom-[-32px] left-[-15px] transform  -translate-x-1/2 z-0 opacity-10 rotate-180 group-hover:opacity-20 transition-opacity">
           <SpectrumLogo
-            className="w-40 h-40 object-contain"
+            className="w-48 h-48 object-contain"
+            fill={logoColor}
+            stroke={logoColor}
+            strokeWidth="1"
+          />
+        </div>
+        <div className="absolute bottom-[-32px] right-[-200px] transform -translate-x-1/2 z-0 opacity-10 rotate-180 group-hover:opacity-20 transition-opacity">
+          <SpectrumLogo
+            className="w-48 h-48 object-contain"
             fill={logoColor}
             stroke={logoColor}
             strokeWidth="1"
