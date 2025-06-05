@@ -11,7 +11,8 @@ function Navbar() {
     text-lg sm:text-xl md:text-xl lg:text-2xl xl:text-2xl
   `;
 
-  const activeLinkClasses = "font-extrabold text-sky-400 border-b-2 border-sky-400";
+  const activeLinkClasses =
+    "font-extrabold text-sky-400 border-b-2 border-sky-400";
 
   const getLinkClass = (path) => {
     return `${baseLinkClasses} ${
@@ -35,12 +36,11 @@ function Navbar() {
               </span>
               <div className="w-2 h-2 bg-sky-400 rounded-full ml-1 animate-pulse"></div>
             </div> */}
-
             {/* Opción 2: Si tienes la imagen en public/ */}
-            
             <img
-              src="/public/image/spectrumColor.svg"
+              src="/public/spectrumColor.svg"
               alt="Spectrum Logo"
+              type="image/svg+xml"
               className="h-8 w-auto"
             />
             *
@@ -156,14 +156,18 @@ function Navbar() {
             </Link>
             <Link
               to="/valorant"
-              className={`${getLinkClass("/valorant")} block px-3 py-2 rounded-md`}
+              className={`${getLinkClass(
+                "/valorant"
+              )} block px-3 py-2 rounded-md`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Noticias
             </Link>
             <Link
               to="/agentes"
-              className={`${getLinkClass("/agentes")} block px-3 py-2 rounded-md`}
+              className={`${getLinkClass(
+                "/agentes"
+              )} block px-3 py-2 rounded-md`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Agentes
