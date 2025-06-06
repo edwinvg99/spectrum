@@ -1,4 +1,4 @@
-// tienda.Valorant.jsx - Versión mejorada con mejor tamaño y responsive
+// tienda.Valorant.jsx - Corregir el fetch para ser adaptativo
 import React, { useState, useEffect } from 'react';
 
 // Componente para el estado de carga
@@ -258,7 +258,18 @@ function ValorantStore() {
   useEffect(() => {
     const fetchStoreProducts = async () => {
       try {
-        const response = await fetch('/api-local/api/valorant/store-products');
+        // ✅ URL adaptativa: desarrollo vs producción
+        const isDevelopment = window.location.hostname === 'localhost';
+        const baseUrl = isDevelopment 
+          ? '/api-local'  // Desarrollo: usar proxy
+          : '';           // Producción: usar mismo dominio
+        
+        const url = `${baseUrl}/api/valorant/store-products`;
+        
+        console.log(`🛍️ Fetching tienda desde: ${url}`);
+        console.log(`🌍 Entorno: ${isDevelopment ? 'Desarrollo' : 'Producción'}`);
+        
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
