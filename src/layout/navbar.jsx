@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import SpectrumLogo from "../assets/images/spectrumLOGO.svg?react";
 
 function Navbar() {
   const location = useLocation();
@@ -24,18 +25,44 @@ function Navbar() {
     <nav className="bg-gradient-to-r from-black via-slate-900 to-black shadow-2xl fixed w-full top-0 z-50 border-b border-slate-700/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo - Lado izquierdo */}
+          {/* Logo - Lado izquierdo con Spectrum SVG */}
           <Link
             to="/"
-            className="flex items-center space-x-3 transition-all duration-300 ease-in-out hover:scale-105"
+            className="flex items-center space-x-3 transition-all duration-300 ease-in-out hover:scale-105 group"
           >
-            <img
-              src="/spectrumColor.svg"
-              alt="Spectrum Logo"
-              type="image/svg+xml"
-              className="h-8 w-auto"
-            />
-            
+            <div className="relative">
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+
+              {/* Logo SVG */}
+              <div className="relative">
+                <SpectrumLogo
+                  className="h-8 w-8 object-contain transition-transform duration-300 group-hover:scale-110"
+                  fill="url(#navSpectrumGradient)"
+                  stroke="rgba(132, 215, 203, 0.8)"
+                  strokeWidth="1"
+                />
+              </div>
+
+              {/* SVG Gradient para el navbar */}
+              <svg width="0" height="0" className="absolute">
+                <defs>
+                  <linearGradient
+                    id="navSpectrumGradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                  >
+                    <stop offset="0%" stopColor="#84d7cb" />
+                    <stop offset="50%" stopColor="#a855f7" />
+                    <stop offset="100%" stopColor="#3b82f6" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+
+     
           </Link>
 
           {/* Menú Desktop - Centro */}
@@ -48,6 +75,12 @@ function Navbar() {
                 Home
               </Link>
               <Link
+                to="/jugadas"
+                className={`${getLinkClass("/jugadas")} px-3 py-2 rounded-md`}
+              >
+                Jugadas
+              </Link>
+              <Link
                 to="/mapas"
                 className={`${getLinkClass("/mapas")} px-3 py-2 rounded-md`}
               >
@@ -57,7 +90,7 @@ function Navbar() {
                 to="/tienda"
                 className={`${getLinkClass("/tienda")} px-3 py-2 rounded-md`}
               >
-                tienda
+                Tienda
               </Link>
               <Link
                 to="/valorant"
@@ -146,6 +179,13 @@ function Navbar() {
               Home
             </Link>
             <Link
+              to="/jugadas"
+              className={`${getLinkClass("/jugadas")} block px-3 py-2 rounded-md`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Jugadas
+            </Link>
+            <Link
               to="/mapas"
               className={`${getLinkClass("/mapas")} block px-3 py-2 rounded-md`}
               onClick={() => setIsMobileMenuOpen(false)}
@@ -153,19 +193,22 @@ function Navbar() {
               Mapas
             </Link>
             <Link
+              to="/tienda"
+              className={`${getLinkClass("/tienda")} block px-3 py-2 rounded-md`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Tienda
+            </Link>
+            <Link
               to="/valorant"
-              className={`${getLinkClass(
-                "/valorant"
-              )} block px-3 py-2 rounded-md`}
+              className={`${getLinkClass("/valorant")} block px-3 py-2 rounded-md`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Noticias
             </Link>
             <Link
               to="/agentes"
-              className={`${getLinkClass(
-                "/agentes"
-              )} block px-3 py-2 rounded-md`}
+              className={`${getLinkClass("/agentes")} block px-3 py-2 rounded-md`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Agentes

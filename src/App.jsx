@@ -13,7 +13,7 @@ import Navbar from "./layout/navbar"; // Asegúrate de que el path a Navbar es c
 import HomePage from "./layout/HomePage"; // Asegúrate de que el path a HomePage es correcto
 import MainContentLayout from "./ValorantData/noticias/components/MainContentLayout";
 import ValorantStore from "./ValorantData/tienda/tienda.Valorant"; // Asegúrate de que el path a ValorantStore es correcto
-// import "./App.css";
+import PlaylistEmbed from "./ValorantData/jugadasYbloopers/PlaylistEmbed"; // Asegúrate de que el path a PlaylistEmbed es correcto
 import './App.css';
 
 const App = () => {
@@ -28,6 +28,7 @@ const App = () => {
           <Route path="/mapas" element={<MapasValorant/>} />
           <Route path="/valorant" element={<MainContentLayout />} />
           <Route path="/tienda" element={<ValorantStore />} />
+          <Route path="/jugadas" element={<PlaylistEmbed />} />
           
           {/* Redirección de /noticias a /valorant */}
           <Route path="*" element={<h2>404 - Página no encontrada</h2>} />
