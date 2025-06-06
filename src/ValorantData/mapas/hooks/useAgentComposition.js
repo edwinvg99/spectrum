@@ -1,4 +1,4 @@
-// src/hooks/useAgentComposition.js
+// src/hooks/useAgentComposition.js - Versión corregida con URL adaptativa
 import { useState, useEffect, useCallback } from 'react';
 
 const REFERENCE_PLAYER = {
@@ -35,8 +35,16 @@ export function useAgentComposition(mapName) {
         setCompositionError(null);
 
         try {
-            // ✅ Tu URL actual del proxy de backend
-            const url = `/api-local/api/valorant/agent-composition/${REFERENCE_PLAYER.region}/${REFERENCE_PLAYER.name}/${REFERENCE_PLAYER.tag}?map=${encodeURIComponent(mapName)}`;
+            // ✅ URL adaptativa: desarrollo vs producción
+            const isDevelopment = window.location.hostname === 'localhost';
+            const baseUrl = isDevelopment 
+                ? '/api-local'  // Desarrollo: usar proxy
+                : '';           // Producción: usar mismo dominio
+            
+            const url = `${baseUrl}/api/valorant/agent-composition/${REFERENCE_PLAYER.region}/${REFERENCE_PLAYER.name}/${REFERENCE_PLAYER.tag}?map=${encodeURIComponent(mapName)}`;
+            
+            console.log(`🎯 Fetching composición desde: ${url}`);
+            console.log(`🌍 Entorno: ${isDevelopment ? 'Desarrollo' : 'Producción'}`);
             
             const response = await fetch(url);
 
@@ -47,10 +55,15 @@ export function useAgentComposition(mapName) {
                     const errorData = await response.json();
                     errorDetails = errorData.message || JSON.stringify(errorData);
                 } catch (jsonErr) {
-                    errorDetails = `Respuesta no JSON: ${response.status} ${response.statusText}`;
-                    console.error('Error al parsear respuesta de error como JSON:', jsonErr, response.text());
+                    // Si no es JSON, es probablemente HTML
+                    const textResponse = await response.text();
+                    if (textResponse.includes('<!doctype') || textResponse.includes('<html>')) {
+                        errorDetails = 'Recibida página HTML en lugar de JSON (posible error de routing)';
+                    } else {
+                        errorDetails = `Respuesta no JSON: ${response.status} ${response.statusText}`;
+                    }
                 }
-                throw new Error(`Error en la solicitud: ${response.status} - ${errorDetails}`);
+                throw new Error(`Error ${response.status}: ${errorDetails}`);
             }
 
             const data = await response.json();

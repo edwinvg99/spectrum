@@ -171,13 +171,20 @@ const fetchStoreProducts = async () => {
   }
 };
 
-// server/routes/valorant.js - Agregar esta nueva ruta
+// server/routes/valorant.js - Agregar esta ruta si no existe
 router.get('/agent-composition/:region/:name/:tag', async (req, res) => {
   try {
     const { region, name, tag } = req.params;
     const { map } = req.query;
     
     console.log(`🎯 Obteniendo composición de agentes para ${name}#${tag} en ${map}`);
+    
+    if (!API_KEY) {
+      return res.status(500).json({ 
+        status: 'error',
+        error: 'API Key no configurada' 
+      });
+    }
     
     const url = `https://api.henrikdev.xyz/valorant/v3/matches/${region}/${name}/${tag}?mode=competitive&map=${encodeURIComponent(map)}`;
     
