@@ -1,10 +1,9 @@
-// server/server.js
+// server/server.js - Versión corregida
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const app = express();
 
-// Railway proporciona PORT automáticamente, usar eso o 3001 por defecto
 const PORT = process.env.PORT || 3001;
 
 require('dotenv').config();
@@ -13,13 +12,13 @@ console.log('🚀 Iniciando servidor...');
 console.log('📍 Puerto:', PORT);
 console.log('🌍 Entorno:', process.env.NODE_ENV || 'development');
 
-// Middleware CORS - Importante para Railway
+// Middleware CORS
 app.use(cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:3001', 
     'https://spectrum.up.railway.app',
-    /https:\/\/.*\.railway\.app$/ // Permitir todos los subdominios de Railway
+    /https:\/\/.*\.railway\.app$/
   ],
   credentials: true
 }));
@@ -27,17 +26,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Servir archivos estáticos en producción
-if (process.env.NODE_ENV === 'production') {
-  console.log('📁 Sirviendo archivos estáticos desde:', path.join(__dirname, '../dist'));
-  app.use(express.static(path.join(__dirname, '../dist')));
-  
-  // ✅ AGREGAR ESTA LÍNEA - Servir archivos de public
-  console.log('📁 Sirviendo archivos públicos desde:', path.join(__dirname, '../public'));
-  app.use(express.static(path.join(__dirname, '../public')));
-}
-
-// Health check endpoint - DEBE estar antes de las otras rutas
+// ✅ 1. PRIMERO: Health check endpoint
 app.get('/api/health', (req, res) => {
   console.log('🏥 Health check solicitado');
   res.status(200).json({ 
@@ -50,16 +39,34 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Rutas de API
+// ✅ 2. SEGUNDO: Todas las rutas de API (ANTES del fallback de React)
 app.use('/api/valorant', require('./routes/valorant'));
 app.use('/api-orlandomm', require('./routes/orlandomm'));
 app.use('/api-valorant', require('./routes/valorantNews'));
 app.use('/api', require('./routes/store'));
 
-// En producción, servir React para todas las rutas que no sean API
+// ✅ 3. DESPUÉS: Servir archivos estáticos en producción
+if (process.env.NODE_ENV === 'production') {
+  console.log('📁 Sirviendo archivos estáticos desde:', path.join(__dirname, '../dist'));
+  app.use(express.static(path.join(__dirname, '../dist')));
+  console.log('📁 Sirviendo archivos públicos desde:', path.join(__dirname, '../public'));
+  app.use(express.static(path.join(__dirname, '../public')));
+}
+
+// ✅ 4. ÚLTIMO: Fallback de React (solo para rutas que NO son API)
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
-    console.log('🎯 Ruta capturada:', req.path);
+    // ✅ IMPORTANTE: Verificar que NO sea una ruta de API
+    if (req.path.startsWith('/api')) {
+      console.log('❌ Ruta de API no encontrada:', req.path);
+      return res.status(404).json({ 
+        error: 'API endpoint no encontrado',
+        path: req.path,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    console.log('🎯 Sirviendo React para ruta:', req.path);
     res.sendFile(path.join(__dirname, '../dist/index.html'));
   });
 }
