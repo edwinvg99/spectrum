@@ -171,4 +171,86 @@ const fetchStoreProducts = async () => {
   }
 };
 
+// server/routes/valorant.js - Agregar esta nueva ruta
+router.get('/agent-composition/:region/:name/:tag', async (req, res) => {
+  try {
+    const { region, name, tag } = req.params;
+    const { map } = req.query;
+    
+    console.log(`🎯 Obteniendo composición de agentes para ${name}#${tag} en ${map}`);
+    
+    const url = `https://api.henrikdev.xyz/valorant/v3/matches/${region}/${name}/${tag}?mode=competitive&map=${encodeURIComponent(map)}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': API_KEY,
+        'User-Agent': 'Valorant-Stats-App/1.0'
+      }
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(`API Error: ${response.status} - ${errorData.errors ? errorData.errors[0].message : 'Error desconocido'}`);
+    }
+    
+    const data = await response.json();
+    
+    // Procesar datos de composición
+    if (data.status === 200 && data.data && data.data.length > 0) {
+      const latestMatch = data.data[0];
+      const teamAgents = {};
+      
+      latestMatch.players.all_players.forEach(player => {
+        const agentName = player.character;
+        const agentSmallImage = player.assets.agent.small;
+        const team = player.team;
+        
+        if (agentName && agentSmallImage) {
+          if (!teamAgents[team]) {
+            teamAgents[team] = [];
+          }
+          if (!teamAgents[team].some(a => a.name === agentName)) {
+            teamAgents[team].push({
+              name: agentName,
+              image: agentSmallImage
+            });
+          }
+        }
+      });
+      
+      const combinedComposition = [
+        ...(teamAgents.Blue || []),
+      ];
+      
+      const uniqueAgents = Array.from(new Set(combinedComposition.map(agent => agent.name)))
+        .map(name => combinedComposition.find(agent => agent.name === name));
+      
+      res.json({
+        status: 'success',
+        data: uniqueAgents,
+        match_info: {
+          map: latestMatch.metadata.map,
+          mode: latestMatch.metadata.mode,
+          started_at: latestMatch.metadata.started_at
+        }
+      });
+    } else {
+      res.json({
+        status: 'no_data',
+        data: [],
+        message: 'No se encontraron partidas para este mapa'
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo composición de agentes:', error);
+    res.status(500).json({ 
+      status: 'error',
+      error: 'Error al obtener composición de agentes',
+      message: error.message 
+    });
+  }
+});
+
 module.exports = router;

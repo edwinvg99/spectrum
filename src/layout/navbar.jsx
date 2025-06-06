@@ -35,7 +35,7 @@ function Navbar() {
               type="image/svg+xml"
               className="h-8 w-auto"
             />
-            *
+            
           </Link>
 
           {/* Menú Desktop - Centro */}
