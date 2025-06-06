@@ -1,15 +1,13 @@
 import React from 'react';
 import { useNoticiasValorant } from '../hooks/useNews'; // Asegúrate de que la ruta sea correcta
+import { NewsLoadingSkeleton } from '../../../sharred/loadingSkeletons';
 
 function NoticiasValorantSection() {
   const { noticias, cargando, error } = useNoticiasValorant();
 
   if (cargando) {
     return (
-      <div className="flex flex-col items-center justify-center p-4 min-h-[300px]"> {/* Altura mínima para el spinner */}
-        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-red-600 mb-4"></div>
-        <p className="text-white text-lg font-semibold">Cargando noticias...</p>
-      </div>
+    <NewsLoadingSkeleton/>  
     );
   }
 

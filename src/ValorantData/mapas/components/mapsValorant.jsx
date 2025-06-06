@@ -1,11 +1,13 @@
 // src/components/MapasValorant.jsx
+import React from 'react'; // ✅ Importar React
 import { useMaps } from "../hooks/useMaps";
-import MapCard from "./MapCard"; // Importa el nuevo componente
+import MapCard from "./MapCard";
+import { MapsLoadingSkeleton } from "../../../sharred/loadingSkeletons"; // ✅ Importación correcta
 
 export default function MapasValorant() {
     const { mapas, cargando, error } = useMaps([
         "La Galería",
-        "Entrenamiento Básico",
+        "Entrenamiento Básico", 
         "Piazza",
         "Glitch",
         "Kasbah",
@@ -13,19 +15,9 @@ export default function MapasValorant() {
         "District",
     ]);
 
-    if (cargando) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-                <div className="flex flex-col justify-center items-center text-center">
-                    <div className="w-12 h-12 border-3 border-slate-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-slate-300 text-lg font-semibold">
-                        Cargando mapas...
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
+    // ✅ Renderizado condicional basado en el estado
+    if (cargando) return <MapsLoadingSkeleton />; // Usar 'cargando' del hook, no 'loading'
+    
     if (error) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
@@ -52,7 +44,6 @@ export default function MapasValorant() {
     return (
         <div className="flex flex-col items-center justify-center w-full bg-[url('https://www.transparenttextures.com/patterns/dark-mosaic.png')] bg-repeat min-h-screen py-10">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 p-6 w-full max-w-7xl">
-                {/* Ahora, por cada mapa, renderizamos un componente MapCard */}
                 {mapas.map((mapa, idx) => (
                     <MapCard key={idx} mapa={mapa} />
                 ))}

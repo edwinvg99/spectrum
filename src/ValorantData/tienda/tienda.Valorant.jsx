@@ -1,15 +1,6 @@
-// tienda.Valorant.jsx - Corregir el fetch para ser adaptativo
+// tienda.Valorant.jsx - Importar y usar el nuevo loading
 import React, { useState, useEffect } from 'react';
-
-// Componente para el estado de carga
-const LoadingState = () => (
-  <div className="flex justify-center items-center min-h-screen bg-slate-950">
-    <div className="text-center">
-      <div className="w-20 h-20 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-      <p className="text-2xl text-white">Cargando packs de la tienda...</p>
-    </div>
-  </div>
-);
+import { StoreLoadingSkeleton } from '../../sharred/loadingSkeletons';
 
 // Componente para el estado de error
 const ErrorState = ({ error }) => (
@@ -307,7 +298,7 @@ function ValorantStore() {
   };
 
   // Renderizado condicional basado en el estado
-  if (loading) return <LoadingState />;
+  if (loading) return <StoreLoadingSkeleton />;
   if (error) return <ErrorState error={error} />;
 
   return (

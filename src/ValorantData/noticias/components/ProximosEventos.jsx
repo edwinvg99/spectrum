@@ -1,18 +1,14 @@
 // src/components/ProximosEventosSection.jsx
 import React from 'react';
 import { useEventosValorant } from '../hooks/useEventosValorant'; // Asegúrate de que la ruta sea correcta
+import { GenericLoadingSkeleton } from '../../../sharred/loadingSkeletons';
 
 function ProximosEventosSection() {
   const { eventos, cargando, error } = useEventosValorant();
 
   if (cargando) {
     return (
-      <section className="py-12 bg-gray-900 min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-yellow-500 mb-4"></div>
-          <p className="text-white text-xl font-semibold">Cargando próximos eventos de Valorant...</p>
-        </div>
-      </section>
+     <GenericLoadingSkeleton></GenericLoadingSkeleton>
     );
   }
 
