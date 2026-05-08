@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import anime from 'animejs';
 import { valorantAPI } from '../../services/valorantApi';
-import { PLAYERS, DEFAULT_IMAGES } from '../../utils/constants';
+import { cacheService } from '../../services/cacheService';
+import { PLAYERS, DEFAULT_IMAGES, CACHE_CONFIG } from '../../utils/constants';
 import SpectrumLogo from '../../assets/images/spectrumLOGO.svg?react';
 
 /* ═══════════════════════════════════════
@@ -32,39 +33,29 @@ const getRankColor = (name) => {
   return RANK_COLORS[tier] || RANK_COLORS.Unranked;
 };
 
-/* ═══════════════════════════════════════
-   BADGE SYSTEM
-═══════════════════════════════════════ */
-function computeBadges(stats, matches) {
-  const b = [];
-  if (!stats) return b;
-  if (stats.kda >= 2.0)      b.push({ icon:'💀', label:'KDA Elite',       desc:`KDA ${stats.kda}`,        color:'#f87171' });
-  else if (stats.kda >= 1.5) b.push({ icon:'⚔️', label:'Guerrero',        desc:`KDA ${stats.kda}`,        color:'#fbbf24' });
-  if (stats.hsPercent >= 30) b.push({ icon:'🎯', label:'Francotirador',    desc:`${stats.hsPercent}% HS`,  color:'#22d3ee' });
-  else if (stats.hsPercent >= 20) b.push({ icon:'🔫', label:'Puntería Firme', desc:`${stats.hsPercent}% HS`, color:'#818cf8' });
-  if (stats.winRate >= 60)   b.push({ icon:'🏆', label:'Imbatible',        desc:`${stats.winRate}% WR`,    color:'#FFD700' });
-  else if (stats.winRate >= 50) b.push({ icon:'✅', label:'Constante',     desc:`${stats.winRate}% WR`,    color:'#4ade80' });
-  if (matches?.length) {
-    let streak = 0;
-    for (const m of matches) { if (m.result === 'win') streak++; else break; }
-    if (streak >= 5)      b.push({ icon:'🔥', label:'En Llamas', desc:`${streak} victorias`, color:'#f97316' });
-    else if (streak >= 3) b.push({ icon:'⚡', label:'Racha',     desc:`${streak} victorias`, color:'#fbbf24' });
-  }
-  if (stats.avgScore >= 250)  b.push({ icon:'⭐', label:'MVP',       desc:`${stats.avgScore} ACS`,  color:'#e879f9' });
-  if (stats.roleCounts && Object.keys(stats.roleCounts).length >= 3)
-    b.push({ icon:'🔄', label:'Versátil', desc:`${Object.keys(stats.roleCounts).length} roles`, color:'#38bdf8' });
-  if (stats.topAgents?.[0]) {
-    const ratio = stats.topAgents[0].games / stats.matchesPlayed;
-    if (ratio >= 0.7) b.push({ icon:'🎭', label:'Main', desc:`${stats.topAgents[0].name} main`, color: ROLE_COLORS[stats.topAgents[0].role]?.color || '#a855f7' });
-  }
-  return b;
-}
+const getRankImage = (tierName) => {
+  // Map tier name → tier ID for valorant-api.com CDN
+  const TIER_IDS = {
+    'Iron 1':3,'Iron 2':4,'Iron 3':5,
+    'Bronze 1':6,'Bronze 2':7,'Bronze 3':8,
+    'Silver 1':9,'Silver 2':10,'Silver 3':11,
+    'Gold 1':12,'Gold 2':13,'Gold 3':14,
+    'Platinum 1':15,'Platinum 2':16,'Platinum 3':17,
+    'Diamond 1':18,'Diamond 2':19,'Diamond 3':20,
+    'Ascendant 1':21,'Ascendant 2':22,'Ascendant 3':23,
+    'Immortal 1':24,'Immortal 2':25,'Immortal 3':26,
+    'Radiant':27,
+  };
+  const id = TIER_IDS[tierName];
+  if (!id) return null;
+  return `https://media.valorant-api.com/competitivetiers/03621f52-342b-cf4e-4f86-9350a49c6d04/${id}/largeicon.png`;
+};
+
 
 /* ═══════════════════════════════════════
    SUB-COMPONENTS
 ═══════════════════════════════════════ */
 
-/* Skeleton */
 function ProfileSkeleton() {
   return (
     <div className="min-h-screen bg-spectrum-darker page-pattern animate-pulse">
@@ -81,10 +72,9 @@ function ProfileSkeleton() {
   );
 }
 
-/* Animated stat box */
 function StatBox({ label, value, color, subtext }) {
-  const numRef   = useRef(null);
-  const boxRef   = useRef(null);
+  const numRef = useRef(null);
+  const boxRef = useRef(null);
   const isNumeric = !isNaN(parseFloat(value)) && !String(value).includes('/');
 
   useEffect(() => {
@@ -93,44 +83,115 @@ function StatBox({ label, value, color, subtext }) {
     if (isNumeric && numRef.current) {
       const obj = { val: 0 };
       anime({
-        targets:  obj,
-        val:      parseFloat(value),
-        duration: 1200,
-        easing:   'easeOutExpo',
-        delay:    200,
-        update:   () => {
-          if (numRef.current) {
-            const display = String(value).includes('%')
-              ? `${obj.val.toFixed(0)}%`
-              : obj.val >= 100 ? Math.round(obj.val) : obj.val.toFixed(2);
-            numRef.current.textContent = display;
-          }
+        targets: obj, val: parseFloat(value), duration: 1200, easing: 'easeOutExpo', delay: 200,
+        update: () => {
+          if (!numRef.current) return;
+          const sv = String(value);
+          const display = sv.includes('%')
+            ? `${obj.val.toFixed(0)}%`
+            : obj.val >= 100 ? Math.round(obj.val) : obj.val.toFixed(2);
+          numRef.current.textContent = display;
         },
       });
     }
   }, [value]);
 
   return (
-    <div
-      ref={boxRef}
+    <div ref={boxRef}
       className="bg-slate-800/40 border border-slate-700/30 rounded-xl p-4 text-center
                  hover:border-slate-600/50 transition-colors duration-200"
-      style={{ opacity: 0 }}
-    >
+      style={{ opacity: 0 }}>
       <span className="block text-[10px] text-slate-500 uppercase tracking-wider mb-1">{label}</span>
-      <span
-        ref={numRef}
-        className="block text-2xl font-black tabular-nums"
-        style={{ color }}
-      >
-        {value}
-      </span>
+      <span ref={numRef} className="block text-2xl font-black tabular-nums" style={{ color }}>{value}</span>
       {subtext && <span className="block text-[10px] text-slate-600 mt-0.5">{subtext}</span>}
     </div>
   );
 }
 
-/* ELO chart */
+/* ── Peak Rank Card ── */
+function PeakRankCard({ peakData, mmrDetailed }) {
+  const peak = mmrDetailed || peakData;
+  if (!peak?.peakTier) return null;
+
+  const peakColor  = getRankColor(peak.peakTier);
+  const peakImg    = getRankImage(peak.peakTier);
+
+  return (
+    <div className="bg-slate-800/30 border border-slate-700/20 rounded-xl p-5">
+      <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">Rango Máximo</h3>
+      <div className="flex items-center gap-4">
+        {peakImg && (
+          <img src={peakImg} alt={peak.peakTier} className="w-16 h-16 object-contain drop-shadow-lg" />
+        )}
+        <div>
+          <span className="block text-xl font-black" style={{ color: peakColor }}>
+            {peak.peakTier}
+          </span>
+          {peak.peakSeason && (
+            <span className="block text-xs text-slate-500 mt-0.5">
+              Temporada {peak.peakSeason}
+              {peak.peakRR > 0 && <span className="ml-2 text-slate-400 font-bold">{peak.peakRR} RR</span>}
+            </span>
+          )}
+        </div>
+      </div>
+      {/* Current RR + Shields */}
+      {(peak.currentRR !== undefined || peak.shields > 0) && (
+        <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-700/20">
+          {peak.currentRR !== undefined && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-slate-500 uppercase">RR actual</span>
+              <span className="text-sm font-black text-white">{peak.currentRR}</span>
+            </div>
+          )}
+          {peak.shields > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-slate-500 uppercase">Escudos</span>
+              <span className="text-sm font-black text-amber-400">🛡️ {peak.shields}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Seasonal Breakdown ── */
+function SeasonalHistory({ peakData, mmrDetailed }) {
+  const seasonal = mmrDetailed?.seasonal || peakData?.seasonal;
+  if (!seasonal?.length) return null;
+
+  return (
+    <div className="bg-slate-800/30 border border-slate-700/20 rounded-xl p-5">
+      <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">Historial por Temporada</h3>
+      <div className="space-y-2">
+        {seasonal.map((s, i) => {
+          const c = getRankColor(s.endTier);
+          return (
+            <div key={i} className="flex items-center justify-between bg-slate-800/40 border border-slate-700/20 rounded-lg p-3
+                                     hover:border-slate-600/40 transition-colors animate-fade-in-up"
+              style={{ animationDelay: `${i * 60}ms` }}>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-black text-slate-400 w-10">{s.season}</span>
+                <span className="text-sm font-bold" style={{ color: c }}>{s.endTier}</span>
+              </div>
+              <div className="flex items-center gap-4 text-xs">
+                <span className="text-slate-500">
+                  {s.wins}/{s.games}
+                  <span className={`ml-1 font-bold ${s.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>
+                    ({s.winRate}%)
+                  </span>
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── ELO chart ── */
 function EloChart({ mmrHistory, rankColor }) {
   if (!mmrHistory?.length || mmrHistory.length < 2) {
     return (
@@ -189,7 +250,7 @@ function EloChart({ mmrHistory, rankColor }) {
   );
 }
 
-/* Animated role bar */
+/* ── Role distribution ── */
 function RoleAnalysis({ stats }) {
   if (!stats?.roleCounts) return null;
   const total = Object.values(stats.roleCounts).reduce((s, c) => s + c, 0);
@@ -210,16 +271,13 @@ function RoleAnalysis({ stats }) {
                 <span className="text-xs text-slate-500">{count} partidas ({pct}%)</span>
               </div>
               <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full animate-fade-in"
+                <div className="h-full rounded-full animate-fade-in"
                   style={{
-                    width: `${pct}%`,
-                    backgroundColor: s.color,
+                    width: `${pct}%`, backgroundColor: s.color,
                     transition: 'width 1s cubic-bezier(.22,1,.36,1)',
                     animation: 'progress-fill 1.2s cubic-bezier(.22,1,.36,1) both',
                     '--target-width': `${pct}%`,
-                  }}
-                />
+                  }} />
               </div>
             </div>
           );
@@ -229,33 +287,7 @@ function RoleAnalysis({ stats }) {
   );
 }
 
-/* Badges */
-function BadgesSection({ badges }) {
-  if (!badges?.length) return null;
-  return (
-    <div className="bg-slate-800/30 border border-slate-700/20 rounded-xl p-5">
-      <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">Logros</h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-        {badges.map((badge, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-2.5 bg-slate-800/50 border border-slate-700/30
-                       rounded-xl p-3 hover:border-slate-600/50 transition-colors animate-fade-in-up"
-            style={{ animationDelay: `${i*60}ms` }}
-          >
-            <span className="text-2xl flex-shrink-0">{badge.icon}</span>
-            <div className="min-w-0">
-              <span className="block text-xs font-black" style={{ color:badge.color }}>{badge.label}</span>
-              <span className="block text-[10px] text-slate-500 truncate">{badge.desc}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* Top agents */
+/* ── Top agents ── */
 function TopAgentsSection({ topAgents }) {
   if (!topAgents?.length) return null;
   return (
@@ -268,17 +300,13 @@ function TopAgentsSection({ topAgents }) {
             <div key={agent.name}
               className="flex items-center gap-3 bg-slate-800/40 border border-slate-700/20
                          rounded-xl p-3 hover:border-slate-600/40 transition-colors animate-fade-in-up"
-              style={{ animationDelay: `${i*80}ms` }}
-            >
+              style={{ animationDelay: `${i*80}ms` }}>
               <div className="relative flex-shrink-0">
                 {agent.image
                   ? <img src={agent.image} alt={agent.name} className="w-12 h-12 rounded-lg object-cover bg-slate-700/30" />
-                  : <div className="w-12 h-12 rounded-lg bg-slate-700/30" />
-                }
+                  : <div className="w-12 h-12 rounded-lg bg-slate-700/30" />}
                 <span className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-slate-800 border border-slate-600
-                                 flex items-center justify-center text-[9px] font-black text-slate-300">
-                  {i+1}
-                </span>
+                                 flex items-center justify-center text-[9px] font-black text-slate-300">{i+1}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -290,6 +318,11 @@ function TopAgentsSection({ topAgents }) {
                 <div className="flex items-center gap-3 mt-0.5">
                   <span className="text-[10px] text-slate-500">{agent.games} partidas</span>
                   <span className="text-[10px] text-slate-400">KDA: <span className="font-bold text-slate-300">{agent.kda}</span></span>
+                  {agent.winRate !== undefined && (
+                    <span className={`text-[10px] font-bold ${agent.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>
+                      {agent.winRate}% WR
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -300,8 +333,39 @@ function TopAgentsSection({ topAgents }) {
   );
 }
 
-/* Match row */
-function MatchRow({ match, index }) {
+/* ── Map stats ── */
+function MapStatsSection({ topMaps }) {
+  if (!topMaps?.length) return null;
+  return (
+    <div className="bg-slate-800/30 border border-slate-700/20 rounded-xl p-5">
+      <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">Rendimiento por Mapa</h3>
+      <div className="space-y-2">
+        {topMaps.map((m, i) => (
+          <div key={m.map}
+            className="flex items-center justify-between bg-slate-800/40 border border-slate-700/20
+                       rounded-lg p-3 hover:border-slate-600/40 transition-colors animate-fade-in-up"
+            style={{ animationDelay: `${i * 60}ms` }}>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-bold text-white">{m.map}</span>
+              <span className="text-[10px] text-slate-500">{m.games} partidas</span>
+            </div>
+            <div className="flex items-center gap-4 text-xs">
+              <span className={`font-bold ${m.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>
+                {m.winRate}% WR
+              </span>
+              <span className={`font-bold ${m.kd >= 1 ? 'text-green-400' : 'text-red-400'}`}>
+                {m.kd} K/D
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Match row ── */
+function MatchRow({ match, index, mapImage }) {
   const s  = RESULT_STYLES[match.result] || RESULT_STYLES.loss;
   const rs = ROLE_COLORS[match.role] || ROLE_COLORS.Duelista;
   const totalShots = (match.headshots||0) + (match.bodyshots||0) + (match.legshots||0);
@@ -311,8 +375,7 @@ function MatchRow({ match, index }) {
     <div
       className={`flex items-center gap-3 ${s.bg} border ${s.border} rounded-xl p-3
                   hover:bg-slate-800/50 transition-all duration-200 animate-fade-in-up group`}
-      style={{ animationDelay: `${index*25}ms` }}
-    >
+      style={{ animationDelay: `${index*25}ms` }}>
       {/* result stripe */}
       <div className={`w-1 self-stretch rounded-full flex-shrink-0
         ${match.result==='win' ? 'bg-green-500' : match.result==='loss' ? 'bg-red-500' : 'bg-yellow-500'}`} />
@@ -321,13 +384,16 @@ function MatchRow({ match, index }) {
       <div className="flex-shrink-0">
         {match.agentImage
           ? <img src={match.agentImage} alt={match.agent} className="w-10 h-10 rounded-lg object-cover bg-slate-700/30" />
-          : <div className="w-10 h-10 rounded-lg bg-slate-700/30 flex items-center justify-center text-xs text-slate-500">?</div>
-        }
+          : <div className="w-10 h-10 rounded-lg bg-slate-700/30 flex items-center justify-center text-xs text-slate-500">?</div>}
       </div>
 
       {/* info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
+          {mapImage && (
+            <img src={mapImage} alt={match.map}
+              className="w-12 h-7 rounded object-cover opacity-60 flex-shrink-0 hidden sm:block" />
+          )}
           <span className="text-sm font-bold text-white">{match.map}</span>
           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${rs.bg} ${rs.text} ${rs.border}`}>
             {match.agent}
@@ -352,17 +418,13 @@ function MatchRow({ match, index }) {
         <span className="text-[9px] text-slate-500">KDA</span>
       </div>
 
-      {/* extra */}
+      {/* extra stats */}
       <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
         <div className="text-center">
           <span className={`block text-sm font-bold ${parseFloat(match.kdRatio)>=1?'text-green-400':'text-red-400'}`}>
             {match.kdRatio}
           </span>
           <span className="text-[9px] text-slate-500">K/D</span>
-        </div>
-        <div className="text-center">
-          <span className="block text-sm font-bold text-spectrum-cyan">{match.avgCombatScore}</span>
-          <span className="text-[9px] text-slate-500">ACS</span>
         </div>
         <div className="text-center">
           <span className={`block text-sm font-bold ${hsPct>=25?'text-cyan-400':'text-slate-400'}`}>{hsPct}%</span>
@@ -374,22 +436,64 @@ function MatchRow({ match, index }) {
 }
 
 /* ═══════════════════════════════════════
+   PROFILE FETCH + CACHE HELPER
+   Single server call → /profile/ endpoint (3 Henrik API calls total)
+═══════════════════════════════════════ */
+async function fetchFresh(cacheKey, ttl, name, tag, region) {
+  const res = await valorantAPI.getPlayerProfile(name, tag, region);
+
+  if (res?.status !== 'success') {
+    throw new Error(res?.message || 'No se pudieron cargar los datos del jugador');
+  }
+
+  const mmr = res.mmr;  // { currentTier, currentRR, elo, peakTier, peakSeason, seasonal, rankImageUrl, ... }
+
+  const profile = {
+    playerData:  res.playerData,
+    /* mmrData shape kept compatible with PlayerCard */
+    mmrData: {
+      currenttierpatched: mmr.currentTier,
+      elo:   mmr.elo,
+      rr:    mmr.currentRR,
+      images: { large: mmr.rankImageUrl },
+    },
+    peakData: {
+      peakTier:   mmr.peakTier,
+      peakSeason: mmr.peakSeason,
+      peakRR:     mmr.peakRR,
+      currentRR:  mmr.currentRR,
+      shields:    mmr.shields,
+    },
+    mmrDetailed: mmr,   // full object with seasonal[], leaderboardPos, etc.
+    stats:       res.stats,
+    matches:     res.matches   || [],
+    mmrHistory:  res.mmrHistory || [],
+  };
+
+  cacheService.set(cacheKey, profile, ttl);
+  return profile;
+}
+
+/* ═══════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════ */
 export default function PlayerProfilePage() {
   const { name, tag } = useParams();
   const navigate      = useNavigate();
   const headerRef     = useRef(null);
-  const statsRef      = useRef(null);
 
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState(null);
-  const [playerData,  setPlayerData]  = useState(null);
-  const [mmrData,     setMmrData]     = useState(null);
-  const [playerStats, setPlayerStats] = useState(null);
-  const [matches,     setMatches]     = useState([]);
-  const [mmrHistory,  setMmrHistory]  = useState([]);
-  const [matchFilter, setMatchFilter] = useState('all');
+  const [loading,      setLoading]      = useState(true);
+  const [fromCache,    setFromCache]    = useState(false);
+  const [error,        setError]        = useState(null);
+  const [playerData,   setPlayerData]   = useState(null);
+  const [mmrData,      setMmrData]      = useState(null);
+  const [peakData,     setPeakData]     = useState(null);
+  const [mmrDetailed,  setMmrDetailed]  = useState(null);
+  const [playerStats,  setPlayerStats]  = useState(null);
+  const [matches,      setMatches]      = useState([]);
+  const [mmrHistory,   setMmrHistory]   = useState([]);
+  const [matchFilter,  setMatchFilter]  = useState('all');
+  const [mapImages,    setMapImages]    = useState({});
 
   const playerInfo = useMemo(() =>
     PLAYERS.find(p =>
@@ -404,24 +508,45 @@ export default function PlayerProfilePage() {
     const dTag   = decodeURIComponent(tag);
     const region = playerInfo?.region || 'latam';
 
+    const PROFILE_CACHE_KEY = `profile_${dName}_${dTag}_${region}`;
+    const PROFILE_TTL       = 10 * 60 * 1000; // 10 min
+
+    const applyProfile = (p) => {
+      setPlayerData(p.playerData);
+      setMmrData(p.mmrData);
+      setPeakData(p.peakData);
+      setMmrDetailed(p.mmrDetailed);
+      setPlayerStats(p.stats);
+      setMatches(p.matches);
+      setMmrHistory(p.mmrHistory);
+    };
+
     const load = async () => {
       setLoading(true);
       setError(null);
-      try {
-        const [completeRes, statsRes, historyRes] = await Promise.all([
-          valorantAPI.getPlayerComplete(dName, dTag, region),
-          valorantAPI.getPlayerStats(dName, dTag, region),
-          valorantAPI.getMatchHistory(dName, dTag, region, 15),
-        ]);
-        if (completeRes?.success) {
-          setPlayerData(completeRes.player?.data || null);
-          setMmrData(completeRes.mmr?.data?.[0]  || null);
-        } else {
-          throw new Error('No se pudieron cargar los datos del jugador');
+
+      /* ── 1. Try cache first ── */
+      const cached = cacheService.get(PROFILE_CACHE_KEY);
+      if (cached) {
+        console.log(`⚡ Profile from cache (${Math.round(cached.age / 1000)}s old)`);
+        applyProfile(cached.data);
+        setFromCache(true);
+        setLoading(false);
+
+        /* If stale, silently refresh in background */
+        if (cached.isStale) {
+          fetchFresh(PROFILE_CACHE_KEY, PROFILE_TTL, dName, dTag, region)
+            .then(fresh => { applyProfile(fresh); setFromCache(false); })
+            .catch(() => {});
         }
-        setPlayerStats(statsRes?.stats || null);
-        setMatches(historyRes?.matches    || []);
-        setMmrHistory(historyRes?.mmrHistory || []);
+        return;
+      }
+
+      /* ── 2. Full fetch ── */
+      try {
+        const fresh = await fetchFresh(PROFILE_CACHE_KEY, PROFILE_TTL, dName, dTag, region);
+        applyProfile(fresh);
+        setFromCache(false);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -430,6 +555,18 @@ export default function PlayerProfilePage() {
     };
     load();
   }, [name, tag, playerInfo]);
+
+  /* fetch map images once */
+  useEffect(() => {
+    fetch('https://valorant-api.com/v1/maps')
+      .then(r => r.json())
+      .then(({ data }) => {
+        const lookup = {};
+        (data || []).forEach(m => { if (m.displayName) lookup[m.displayName] = m.listViewIcon; });
+        setMapImages(lookup);
+      })
+      .catch(() => {});
+  }, []);
 
   /* header entrance animation */
   useEffect(() => {
@@ -449,8 +586,6 @@ export default function PlayerProfilePage() {
     return matches.filter(m => m.result === matchFilter);
   }, [matches, matchFilter]);
 
-  const badges = useMemo(() => computeBadges(playerStats, matches), [playerStats, matches]);
-
   if (loading) return <ProfileSkeleton />;
 
   if (error || !playerData) {
@@ -460,11 +595,9 @@ export default function PlayerProfilePage() {
           <div className="text-6xl mb-4">😵</div>
           <h2 className="text-xl font-bold text-red-300 mb-2">Error cargando perfil</h2>
           <p className="text-sm text-red-400/80 mb-6">{error || 'No se encontraron datos.'}</p>
-          <button
-            onClick={() => navigate('/integrantes')}
+          <button onClick={() => navigate('/integrantes')}
             className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium
-                       rounded-lg border border-slate-700 hover:border-spectrum-cyan/30 transition-all"
-          >
+                       rounded-lg border border-slate-700 hover:border-spectrum-cyan/30 transition-all">
             ← Volver a Integrantes
           </button>
         </div>
@@ -474,10 +607,11 @@ export default function PlayerProfilePage() {
 
   const cardImage   = playerData.card?.wide    || playerData.card?.large || DEFAULT_IMAGES.ERROR_CARD;
   const playerAvatar= playerData.card?.small   || DEFAULT_IMAGES.DEFAULT_AVATAR;
-  const rankImage   = mmrData?.images?.large   || DEFAULT_IMAGES.UNRANKED_ICON;
-  const currentTier = mmrData?.currenttierpatched || 'Unranked';
+  const currentTier = mmrDetailed?.currentTier || mmrData?.currenttierpatched || 'Unranked';
   const rankColor   = getRankColor(currentTier);
-  const elo         = mmrData?.elo || 'N/A';
+  const rankImage   = mmrDetailed?.rankImageUrl || mmrData?.images?.large || DEFAULT_IMAGES.UNRANKED_ICON;
+  const elo         = mmrDetailed?.elo  || mmrData?.elo  || 'N/A';
+  const currentRR   = mmrDetailed?.currentRR ?? peakData?.currentRR ?? null;
   const primaryRole = playerStats?.primaryRole;
   const roleStyle   = primaryRole ? (ROLE_COLORS[primaryRole] || ROLE_COLORS.Duelista) : null;
 
@@ -486,32 +620,45 @@ export default function PlayerProfilePage() {
 
       {/* ── Banner ── */}
       <div className="relative h-64 overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center scale-105"
-          style={{ backgroundImage:`url(${cardImage})`, filter:'blur(1px)' }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-spectrum-darker via-spectrum-darker/60 to-spectrum-darker/20" />
-        <div className="absolute inset-0 bg-gradient-to-r from-spectrum-darker/60 to-transparent" />
+        <div className="absolute inset-0 bg-cover bg-center scale-105"
+          style={{ backgroundImage:`url(${cardImage})`, filter:'blur(1px)', opacity: 0.3 }} />
+        <div className="absolute inset-0 bg-gradient-to-t from-spectrum-darker via-spectrum-darker/85 to-spectrum-darker/50" />
+        <div className="absolute inset-0 bg-gradient-to-r from-spectrum-darker/70 to-transparent" />
 
-        {/* Back */}
-        <div className="absolute top-20 left-4 z-10">
-          <button
-            onClick={() => navigate('/integrantes')}
+        <div className="absolute top-20 left-4 z-10 flex items-center gap-2">
+          <button onClick={() => navigate('/integrantes')}
             className="flex items-center gap-2 px-4 py-2 bg-slate-900/70 hover:bg-slate-800/80
                        text-slate-300 hover:text-white text-sm rounded-xl border border-slate-700/50
-                       backdrop-blur-sm transition-all duration-200"
-          >
+                       backdrop-blur-sm transition-all duration-200">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
             </svg>
             Integrantes
           </button>
+          {fromCache && (
+            <button
+              onClick={() => {
+                const dName  = decodeURIComponent(name);
+                const dTag   = decodeURIComponent(tag);
+                const region = playerInfo?.region || 'latam';
+                const key    = `profile_${dName}_${dTag}_${region}`;
+                cacheService.remove(key);
+                window.location.reload();
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20
+                         text-amber-400 text-xs font-semibold rounded-xl border border-amber-500/20
+                         backdrop-blur-sm transition-all duration-200"
+              title="Datos desde caché — clic para actualizar"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Caché
+            </button>
+          )}
         </div>
 
-        {/* Logo watermark */}
-        <div className="absolute -top-16 -right-16 opacity-[0.04] pointer-events-none">
-          <SpectrumLogo className="w-80 h-80 animate-spin-slow" fill={rankColor} stroke={rankColor} />
-        </div>
       </div>
 
       {/* ── Profile block ── */}
@@ -519,20 +666,15 @@ export default function PlayerProfilePage() {
 
         {/* Header info */}
         <div ref={headerRef} className="flex flex-col sm:flex-row items-start gap-6 mb-8">
-          {/* Avatar */}
           <div className="profile-part opacity-0 relative flex-shrink-0">
-            <img
-              src={playerAvatar}
-              alt={`${playerData.name} avatar`}
+            <img src={playerAvatar} alt={`${playerData.name} avatar`}
               className="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl border-4 object-cover shadow-2xl"
-              style={{ borderColor:`${rankColor}70`, boxShadow:`0 16px 48px -8px ${rankColor}40` }}
-            />
+              style={{ borderColor:`${rankColor}70`, boxShadow:`0 16px 48px -8px ${rankColor}40` }} />
             <div className="absolute -bottom-3 -right-3">
               <img src={rankImage} alt={currentTier} className="w-12 h-12 object-contain drop-shadow-gold" />
             </div>
           </div>
 
-          {/* Text */}
           <div className="flex-1 pt-3">
             <div className="profile-part opacity-0">
               <h1 className="text-4xl sm:text-5xl font-display font-black text-white">
@@ -546,6 +688,14 @@ export default function PlayerProfilePage() {
               <span className="text-base font-black uppercase tracking-widest" style={{ color: rankColor }}>
                 {currentTier}
               </span>
+              {currentRR !== null && (
+                <>
+                  <span className="text-slate-700">·</span>
+                  <span className="text-sm text-slate-400">
+                    <span className="font-black" style={{ color: rankColor }}>{currentRR}</span> RR
+                  </span>
+                </>
+              )}
               <span className="text-slate-700">·</span>
               <span className="text-sm text-slate-400">ELO: <span className="font-black" style={{ color: rankColor }}>{elo}</span></span>
               <span className="text-slate-700">·</span>
@@ -558,9 +708,20 @@ export default function PlayerProfilePage() {
                   </span>
                 </>
               )}
+              {/* Peak rank badge inline */}
+              {(mmrDetailed?.peakTier || peakData?.peakTier) && (
+                <>
+                  <span className="text-slate-700">·</span>
+                  <span className="text-xs text-slate-500">
+                    Peak: <span className="font-black" style={{ color: getRankColor(mmrDetailed?.peakTier || peakData?.peakTier) }}>
+                      {mmrDetailed?.peakTier || peakData?.peakTier}
+                    </span>
+                  </span>
+                </>
+              )}
             </div>
             {playerStats && (
-              <p className="profile-part opacity-0 text-xs text-slate-600 mt-1.5">
+              <p className="profile-part opacity-0 text-xs text-sky-600 ">
                 {playerStats.matchesPlayed} partidas competitivas analizadas
               </p>
             )}
@@ -569,32 +730,32 @@ export default function PlayerProfilePage() {
 
         {/* ── Stats grid ── */}
         {playerStats && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-            <StatBox label="K/D"     value={playerStats.kd}      color={playerStats.kd >= 1 ? '#4ade80' : '#f87171'} />
-            <StatBox label="KDA"     value={playerStats.kda}     color={playerStats.kda >= 1.5 ? '#4ade80' : playerStats.kda >= 1 ? '#fbbf24' : '#f87171'} />
-            <StatBox label="Win Rate" value={`${playerStats.winRate}%`} color={playerStats.winRate >= 50 ? '#4ade80' : '#f87171'}
-              subtext={`${playerStats.wins}W · ${playerStats.matchesPlayed - playerStats.wins}L`} />
-            <StatBox label="HS%"     value={`${playerStats.hsPercent}%`} color={playerStats.hsPercent >= 25 ? '#22d3ee' : '#fbbf24'} />
-            <StatBox label="Avg Score" value={playerStats.avgScore}  color="#00f7ff" />
-            <StatBox label="Avg K/D/A" value={`${playerStats.avgKillsPerMatch}/${playerStats.avgDeathsPerMatch}/${playerStats.avgAssistsPerMatch}`}
-              color="#e2e8f0" subtext="por partida" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+            <StatBox label="K/D"      value={playerStats.kd}               color={playerStats.kd >= 1 ? '#4ade80' : '#f87171'} />
+            <StatBox label="KDA"      value={playerStats.kda}              color={playerStats.kda >= 1.5 ? '#4ade80' : playerStats.kda >= 1 ? '#fbbf24' : '#f87171'} />
+            <StatBox label="Win Rate" value={`${playerStats.winRate}%`}    color={playerStats.winRate >= 50 ? '#4ade80' : '#f87171'}
+              subtext={`${playerStats.wins}V · ${playerStats.matchesPlayed - playerStats.wins}D`} />
+            <StatBox label="HS%"      value={`${playerStats.hsPercent}%`}  color={playerStats.hsPercent >= 25 ? '#22d3ee' : '#fbbf24'} />
+         
           </div>
         )}
 
-        {/* ── Badges ── */}
-        {badges.length > 0 && (
-          <div className="mb-6">
-            <BadgesSection badges={badges} />
-          </div>
-        )}
-
-        {/* ── Chart + analysis ── */}
+        {/* ── Chart + Peak + Seasonal ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-          <EloChart mmrHistory={mmrHistory} rankColor={rankColor} />
           <div className="space-y-4">
-            <RoleAnalysis stats={playerStats} />
-            <TopAgentsSection topAgents={playerStats?.topAgents} />
+            <EloChart mmrHistory={mmrHistory} rankColor={rankColor} />
+            <PeakRankCard peakData={peakData} mmrDetailed={mmrDetailed} />
           </div>
+          <div className="space-y-4">
+            <SeasonalHistory peakData={peakData} mmrDetailed={mmrDetailed} />
+            <RoleAnalysis stats={playerStats} />
+          </div>
+        </div>
+
+        {/* ── Agents + Maps ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <TopAgentsSection topAgents={playerStats?.topAgents} />
+          <MapStatsSection topMaps={playerStats?.topMaps} />
         </div>
 
         {/* ── Match history ── */}
@@ -607,14 +768,11 @@ export default function PlayerProfilePage() {
                 { key:'win',  label:'Victorias' },
                 { key:'loss', label:'Derrotas'  },
               ].map(f => (
-                <button
-                  key={f.key}
-                  onClick={() => setMatchFilter(f.key)}
+                <button key={f.key} onClick={() => setMatchFilter(f.key)}
                   className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors
                     ${matchFilter === f.key
                       ? 'bg-spectrum-cyan/10 text-spectrum-cyan border border-spectrum-cyan/30'
-                      : 'text-slate-500 hover:text-slate-300 border border-transparent'}`}
-                >
+                      : 'text-slate-500 hover:text-slate-300 border border-transparent'}`}>
                   {f.label}
                 </button>
               ))}
@@ -630,7 +788,7 @@ export default function PlayerProfilePage() {
           ) : (
             <div className="space-y-2">
               {filteredMatches.map((match, i) => (
-                <MatchRow key={match.matchId || i} match={match} index={i} />
+                <MatchRow key={match.matchId || i} match={match} index={i} mapImage={mapImages[match.map]} />
               ))}
             </div>
           )}

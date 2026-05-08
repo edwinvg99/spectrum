@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import anime from "animejs";
-import { DEFAULT_IMAGES } from "../../../server/utils/constants";
+import { DEFAULT_IMAGES } from "../../utils/constants";
 import SpectrumLogo from "../../assets/images/spectrumLOGO.svg?react";
 
 /* ── Skeleton ── */
@@ -45,7 +45,7 @@ const RANK_COLORS = {
 };
 const getRankColor = (r) => RANK_COLORS[r] || RANK_COLORS["Unranked"];
 
-const PlayerCard = ({ playerData, mmrData, isLoading, error, playerInfo }) => {
+const PlayerCard = ({ playerData, mmrData, peakData, isLoading, error, playerInfo }) => {
   const [showContent, setShowContent] = useState(false);
   const cardRef      = useRef(null);
   const eloRef       = useRef(null);
@@ -179,7 +179,23 @@ const PlayerCard = ({ playerData, mmrData, isLoading, error, playerInfo }) => {
         </h2>
         <p className="text-sm text-slate-400 mt-1 group-hover:text-slate-300 transition-colors">
           {currentTier}
+          {peakData?.currentRR !== undefined && (
+            <span className="ml-2 text-xs font-bold" style={{ color: rankColor }}>{peakData.currentRR} RR</span>
+          )}
         </p>
+
+        {/* Peak rank badge */}
+        {peakData?.peakTier && peakData.peakTier !== currentTier && (
+          <div className="mt-1.5 flex items-center justify-center gap-1.5">
+            <span className="text-[9px] text-slate-500 uppercase tracking-wider">Peak</span>
+            <span className="text-xs font-black" style={{ color: getRankColor(peakData.peakTier) }}>
+              {peakData.peakTier}
+            </span>
+            {peakData.peakSeason && (
+              <span className="text-[9px] text-slate-600">({peakData.peakSeason})</span>
+            )}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="flex gap-3 mt-5">

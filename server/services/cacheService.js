@@ -1,157 +1,169 @@
-// Configuración del caché
+import { CACHE_CONFIG } from '../utils/constants';
+
 const CACHE_KEYS = {
-  PLAYERS_DATA: 'valorant_players_cache',
-  CACHE_METADATA: 'valorant_cache_metadata'
+  PLAYERS_DATA:  'valorant_players_cache',
+  CACHE_METADATA:'valorant_cache_metadata',
+  CARD_PREFIX:   'vsc_card_',
+  GENERIC_PREFIX:'vsc_',
 };
 
-const CACHE_CONFIG = {
-  TTL: 5 * 60 * 1000, // 5 minutos en milisegundos
-  MAX_AGE: 30 * 60 * 1000, // 30 minutos máximo
-  VERSION: '1.0.0'
+/* safe localStorage wrappers */
+const ls = {
+  get:    (k)    => { try { return localStorage.getItem(k); }        catch { return null; } },
+  set:    (k, v) => { try { localStorage.setItem(k, v); }            catch {} },
+  remove: (k)    => { try { localStorage.removeItem(k); }            catch {} },
+  keys:   ()     => { try { return Object.keys(localStorage); }      catch { return []; } },
 };
 
 export const cacheService = {
-  // Guardar datos en caché
+
+  // ── Generic key/value cache (used for card UUIDs, etc.) ──────────────────
+
+  set(key, data, ttl) {
+    const entry = {
+      data,
+      timestamp: Date.now(),
+      ttl,
+      version: CACHE_CONFIG.VERSION,
+    };
+    ls.set(CACHE_KEYS.GENERIC_PREFIX + key, JSON.stringify(entry));
+  },
+
+  get(key) {
+    const raw = ls.get(CACHE_KEYS.GENERIC_PREFIX + key);
+    if (!raw) return null;
+    let entry;
+    try { entry = JSON.parse(raw); } catch { ls.remove(CACHE_KEYS.GENERIC_PREFIX + key); return null; }
+    if (entry.version !== CACHE_CONFIG.VERSION) { ls.remove(CACHE_KEYS.GENERIC_PREFIX + key); return null; }
+    if (Date.now() - entry.timestamp > entry.ttl) { ls.remove(CACHE_KEYS.GENERIC_PREFIX + key); return null; }
+    return entry.data;
+  },
+
+  // ── Player card UUID cache (7-day TTL) ────────────────────────────────────
+
+  saveCardData(playerKey, cardData) {
+    this.set(CACHE_KEYS.CARD_PREFIX + playerKey, cardData, CACHE_CONFIG.PLAYER_CARD_TTL);
+  },
+
+  getCardData(playerKey) {
+    return this.get(CACHE_KEYS.CARD_PREFIX + playerKey);
+  },
+
+  // ── Player grid cache (24h TTL) ───────────────────────────────────────────
+
   savePlayersData(playersData) {
     try {
       const cacheData = {
-        data: playersData,
+        data:      playersData,
         timestamp: Date.now(),
-        version: CACHE_CONFIG.VERSION
+        version:   CACHE_CONFIG.VERSION,
       };
-      
-      localStorage.setItem(CACHE_KEYS.PLAYERS_DATA, JSON.stringify(cacheData));
-      
-      // Guardar metadata del caché
-      const metadata = {
-        lastUpdate: Date.now(),
+      ls.set(CACHE_KEYS.PLAYERS_DATA, JSON.stringify(cacheData));
+      ls.set(CACHE_KEYS.CACHE_METADATA, JSON.stringify({
+        lastUpdate:   Date.now(),
         playersCount: playersData.length,
-        version: CACHE_CONFIG.VERSION
-      };
-      localStorage.setItem(CACHE_KEYS.CACHE_METADATA, JSON.stringify(metadata));
-      
-      console.log('💾 Datos guardados en caché:', playersData.length, 'jugadores');
+        version:      CACHE_CONFIG.VERSION,
+      }));
+      console.log(`[Cache] Saved ${playersData.length} players (24h TTL)`);
       return true;
     } catch (error) {
-      console.error('❌ Error guardando en caché:', error);
+      console.error('[Cache] Error saving players data:', error);
       return false;
     }
   },
 
-  // Obtener datos del caché
+  /** Update a single player's entry in the cached array without re-fetching all. */
+  updatePlayerInCache(name, tag, fresh) {
+    const cached = this.getPlayersData();
+    if (!cached) return false;
+    const updated = cached.data.map((p) =>
+      p.name === name && p.tag === tag ? { ...p, ...fresh, lastUpdated: Date.now() } : p
+    );
+    this.savePlayersData(updated);
+    return true;
+  },
+
   getPlayersData() {
     try {
-      const cachedData = localStorage.getItem(CACHE_KEYS.PLAYERS_DATA);
-      if (!cachedData) {
-        console.log('📭 No hay datos en caché');
-        return null;
-      }
+      const raw = ls.get(CACHE_KEYS.PLAYERS_DATA);
+      if (!raw) return null;
 
-      const parsedData = JSON.parse(cachedData);
-      
-      // Verificar versión
-      if (parsedData.version !== CACHE_CONFIG.VERSION) {
-        console.log('🔄 Versión de caché obsoleta, limpiando...');
+      const parsed = JSON.parse(raw);
+
+      if (parsed.version !== CACHE_CONFIG.VERSION) {
+        console.log('[Cache] Version mismatch — clearing');
         this.clearCache();
         return null;
       }
 
-      const age = Date.now() - parsedData.timestamp;
-      
-      // Si los datos son muy antiguos, no los uses
+      const age = Date.now() - parsed.timestamp;
       if (age > CACHE_CONFIG.MAX_AGE) {
-        console.log('⏰ Datos de caché muy antiguos, limpiando...');
+        console.log('[Cache] Hard-expired — clearing');
         this.clearCache();
         return null;
       }
 
-      console.log(`📦 Datos recuperados del caché (${Math.round(age / 1000)}s de antigüedad)`);
-      return {
-        data: parsedData.data,
-        age: age,
-        isStale: age > CACHE_CONFIG.TTL
-      };
+      console.log(`[Cache] Hit — ${Math.round(age / 1000 / 60)}min old, stale=${age > CACHE_CONFIG.TTL}`);
+      return { data: parsed.data, age, isStale: age > CACHE_CONFIG.TTL };
     } catch (error) {
-      console.error('❌ Error leyendo caché:', error);
+      console.error('[Cache] Read error:', error);
       this.clearCache();
       return null;
     }
   },
 
-  // Verificar si el caché está fresco
   isCacheFresh() {
-    const cachedData = this.getPlayersData();
-    return cachedData && !cachedData.isStale;
+    const c = this.getPlayersData();
+    return !!(c && !c.isStale);
   },
 
-  // Limpiar caché
   clearCache() {
-    try {
-      localStorage.removeItem(CACHE_KEYS.PLAYERS_DATA);
-      localStorage.removeItem(CACHE_KEYS.CACHE_METADATA);
-      console.log('🧹 Caché limpiado');
-      return true;
-    } catch (error) {
-      console.error('❌ Error limpiando caché:', error);
-      return false;
-    }
+    ls.remove(CACHE_KEYS.PLAYERS_DATA);
+    ls.remove(CACHE_KEYS.CACHE_METADATA);
   },
 
-  // Obtener metadata del caché
+  clearAll() {
+    this.clearCache();
+    ls.keys().filter(k => k.startsWith(CACHE_KEYS.GENERIC_PREFIX)).forEach(k => ls.remove(k));
+    console.log('[Cache] All entries cleared.');
+  },
+
   getCacheMetadata() {
     try {
-      const metadata = localStorage.getItem(CACHE_KEYS.CACHE_METADATA);
-      return metadata ? JSON.parse(metadata) : null;
-    } catch (error) {
-      console.error('❌ Error obteniendo metadata del caché:', error);
-      return null;
-    }
+      const raw = ls.get(CACHE_KEYS.CACHE_METADATA);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
   },
 
-  // Obtener información del estado del caché
   getCacheStatus() {
-    const cachedData = this.getPlayersData();
+    const cached   = this.getPlayersData();
     const metadata = this.getCacheMetadata();
-    
-    if (!cachedData || !metadata) {
-      return {
-        hasCache: false,
-        age: 0,
-        isStale: true,
-        nextUpdateIn: 0
-      };
+
+    if (!cached || !metadata) {
+      return { hasCache: false, age: 0, isStale: true, nextUpdateIn: 0 };
     }
 
-    const age = cachedData.age;
-    const nextUpdateIn = Math.max(0, CACHE_CONFIG.TTL - age);
-    
+    const age = cached.age;
     return {
-      hasCache: true,
-      age: age,
-      isStale: cachedData.isStale,
-      nextUpdateIn: nextUpdateIn,
-      lastUpdate: new Date(metadata.lastUpdate).toLocaleString('es-ES'),
-      playersCount: metadata.playersCount
+      hasCache:     true,
+      age,
+      isStale:      cached.isStale,
+      nextUpdateIn: Math.max(0, CACHE_CONFIG.TTL - age),
+      lastUpdate:   new Date(metadata.lastUpdate).toLocaleString('es-CO'),
+      playersCount: metadata.playersCount,
     };
   },
 
-  // Método para obtener configuración del caché
-  getConfig() {
-    return CACHE_CONFIG;
-  },
+  getConfig() { return CACHE_CONFIG; },
 
-  // Método para verificar si localStorage está disponible
   isLocalStorageAvailable() {
     try {
-      const test = '__cache_test__';
-      localStorage.setItem(test, test);
-      localStorage.removeItem(test);
+      const k = '__cache_test__';
+      localStorage.setItem(k, k);
+      localStorage.removeItem(k);
       return true;
-    } catch (error) {
-      console.warn('⚠️ localStorage no está disponible');
-      return false;
-    }
-  }
+    } catch { return false; }
+  },
 };
 
 export default cacheService;

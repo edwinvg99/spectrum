@@ -2,41 +2,239 @@ import React, {
   useState, useEffect, useMemo, useRef, useCallback,
 } from "react";
 import anime from "animejs";
-import { useAccesorios } from "../hooks/useAccesorios";
-import { AccesorioCard } from "./AccesorioCard";
+import { useAccesorios }            from "../hooks/useAccesorios";
+import { AccesorioCard, DownloadBtn, TYPE_STYLE } from "./AccesorioCard";
 
-/* ── Config ─────────────────────────────────── */
 const PAGE_SIZE = 80;
 
 const TYPE_TABS = [
-  { key: "all",        label: "Todos",    icon: "✨", color: "#94a3b8" },
-  { key: "buddy",      label: "Llaveros", icon: "🔑", color: "#f59e0b" },
-  { key: "spray",      label: "Sprays",   icon: "🎨", color: "#a78bfa" },
-  { key: "playercard", label: "Tarjetas", icon: "🃏", color: "#22d3ee" },
+  { key: "all",        label: "Todos",    color: "rgba(0,247,255,0.7)" },
+  { key: "buddy",      label: "Llaveros", color: "#f59e0b" },
+  { key: "spray",      label: "Sprays",   color: "#a78bfa" },
+  { key: "playercard", label: "Tarjetas", color: "#22d3ee" },
 ];
 
-/* ── Skeleton grid ───────────────────────────── */
-function SkeletonGrid({ size }) {
-  const count = size === "lg" ? 24 : 40;
-  const w     = size === "lg" ? 224 : 148;
-  const h     = size === "lg" ? 280 : 185;
+/* ── map download label → preview image URL ─── */
+function getVariantImage(item, dlLabel) {
+  switch (dlLabel) {
+    case "Grande":      return item.imagenLarge || item.imagen;
+    case "Ancha":       return item.imagenWide  || item.imagenLarge;
+    case "Pequeña":     return item.imagen;
+    case "GIF animado": return item.gifUrl;
+    default:            return item.imagenLarge || item.imagen;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   MODAL
+══════════════════════════════════════════════ */
+function ItemModal({ item, onClose }) {
+  const ts = TYPE_STYLE[item?.tipo] || { label: "Item", color: "#64748b" };
+
+  /* close on Escape */
+  useEffect(() => {
+    if (!item) return;
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [item, onClose]);
+
+  if (!item) return null;
+
+  const isWide   = (dl) => dl.label === "Ancha";
+  const imgStyle = (dl) => isWide(dl)
+    ? { maxWidth: "100%", maxHeight: 160, objectFit: "contain" }
+    : { maxWidth: "100%", maxHeight: 260, objectFit: "contain" };
+
   return (
-    <div className="flex flex-wrap justify-center gap-3 animate-pulse">
-      {[...Array(count)].map((_, i) => (
-        <div key={i} className="rounded-2xl bg-slate-800/50 border border-slate-700/30"
-          style={{ width: w, height: h }} />
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 200,
+        background: "rgba(4,11,20,0.88)",
+        backdropFilter: "blur(6px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "24px 16px",
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: "relative",
+          background: "rgba(8,16,28,0.97)",
+          border: "1px solid rgba(0,247,255,0.22)",
+          borderRadius: 16,
+          width: "100%",
+          maxWidth: 820,
+          maxHeight: "90vh",
+          overflowY: "auto",
+          padding: "32px 28px 28px",
+          boxShadow: "0 0 80px rgba(0,247,255,0.08), 0 40px 80px rgba(0,0,0,0.6)",
+        }}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          style={{
+            position: "absolute", top: 16, right: 16,
+            width: 32, height: 32,
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 8,
+            color: "rgba(255,255,255,0.5)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", fontSize: 16, transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#fff"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}
+        >
+          ✕
+        </button>
+
+        {/* Header */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{
+            display: "inline-block",
+            padding: "2px 10px",
+            background: `${ts.color}15`,
+            border: `1px solid ${ts.color}35`,
+            borderRadius: 999,
+            color: ts.color,
+            fontFamily: "'Rajdhani', sans-serif",
+            fontSize: "0.65rem",
+            fontWeight: 700,
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            marginBottom: 10,
+          }}>
+            {ts.label}
+          </div>
+          <h2 style={{
+            margin: 0,
+            fontFamily: "'Rajdhani', 'Impact', sans-serif",
+            fontSize: "clamp(1.4rem, 3vw, 1.9rem)",
+            fontWeight: 700,
+            color: "#fff",
+            textTransform: "uppercase",
+            letterSpacing: "0.03em",
+            textShadow: "0 0 22px rgba(0,247,255,0.3)",
+            lineHeight: 1.1,
+          }}>
+            {item.nameEs}
+          </h2>
+          {item.nameEn && item.nameEn !== item.nameEs && (
+            <p style={{ margin: "4px 0 0", color: "rgba(255,255,255,0.3)", fontSize: "0.78rem", fontFamily: "'Rajdhani', sans-serif", letterSpacing: "0.05em" }}>
+              {item.nameEn}
+            </p>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div style={{
+          height: 1,
+          background: "linear-gradient(90deg, rgba(0,247,255,0.25) 0%, rgba(168,85,247,0.2) 50%, transparent 100%)",
+          marginBottom: 24,
+        }} />
+
+        {/* Variants */}
+        <div style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 20,
+          justifyContent: item.downloads.length === 1 ? "center" : "flex-start",
+        }}>
+          {item.downloads.map((dl, i) => {
+            const previewSrc = getVariantImage(item, dl.label);
+            const wide = dl.label === "Ancha";
+
+            return (
+              <div
+                key={i}
+                style={{
+                  flex: wide ? "1 1 100%" : "1 1 200px",
+                  maxWidth: wide ? "100%" : 260,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  alignItems: "center",
+                }}
+              >
+                {/* Variant label */}
+                <div style={{
+                  fontFamily: "'Rajdhani', sans-serif",
+                  fontSize: "0.65rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  color: "rgba(0,247,255,0.6)",
+                  alignSelf: "flex-start",
+                }}>
+                  {dl.label}
+                  {dl.ext === "gif" && (
+                    <span style={{ marginLeft: 6, color: "#c4b5fd" }}>· Animado</span>
+                  )}
+                </div>
+
+                {/* Preview box */}
+                <div style={{
+                  width: "100%",
+                  background: "rgba(4,11,20,0.7)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  borderRadius: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 16,
+                  minHeight: wide ? 100 : 160,
+                }}>
+                  {previewSrc ? (
+                    <img
+                      src={previewSrc}
+                      alt={`${item.nameEs} — ${dl.label}`}
+                      style={imgStyle(dl)}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span style={{ color: "rgba(255,255,255,0.15)", fontSize: "0.75rem", fontFamily: "'Rajdhani', sans-serif" }}>
+                      Sin vista previa
+                    </span>
+                  )}
+                </div>
+
+                {/* Download button */}
+                <DownloadBtn item={item} dlOption={dl} variant="primary" />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Skeleton ─────────────────────────────── */
+function SkeletonGrid() {
+  return (
+    <div className="flex flex-wrap justify-center gap-4 animate-pulse">
+      {[...Array(24)].map((_, i) => (
+        <div key={i} style={{ width: 200, height: 248, borderRadius: 14, background: "rgba(10,22,40,0.6)", border: "1px solid rgba(0,247,255,0.06)" }} />
       ))}
     </div>
   );
 }
 
-/* ── Stats badge ─────────────────────────────── */
+/* ── Stats badge (no emoji) ───────────────── */
 function StatBadge({ label, count, color }) {
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border"
-      style={{ backgroundColor: `${color}10`, borderColor: `${color}25` }}>
-      <span className="text-base leading-none">{label}</span>
-      <span className="text-xs font-black tabular-nums" style={{ color }}>{count.toLocaleString()}</span>
+    <div style={{
+      display: "flex", alignItems: "center", gap: 6,
+      padding: "5px 12px",
+      background: `${color}0d`,
+      border: `1px solid ${color}25`,
+      borderRadius: 8,
+    }}>
+      <span style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.15em", color: "rgba(255,255,255,0.45)", textTransform: "uppercase" }}>{label}</span>
+      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.72rem", fontWeight: 700, color }}>{count.toLocaleString()}</span>
     </div>
   );
 }
@@ -47,41 +245,32 @@ function StatBadge({ label, count, color }) {
 export default function AccesoriosPage() {
   const { items, loading, error, fromCache, reload } = useAccesorios();
 
-  const [search,    setSearch]    = useState("");
-  const [activeTab, setActiveTab] = useState("all");
-  const [viewSize,  setViewSize]  = useState("sm");  // "sm" | "lg"
-  const [shown,     setShown]     = useState(PAGE_SIZE);
-  const [sortBy,    setSortBy]    = useState("name"); // "name" | "tipo"
+  const [search,       setSearch]       = useState("");
+  const [activeTab,    setActiveTab]    = useState("all");
+  const [shown,        setShown]        = useState(PAGE_SIZE);
+  const [sortBy,       setSortBy]       = useState("name");
+  const [selectedItem, setSelectedItem] = useState(null);
 
   const headerRef = useRef(null);
   const gridRef   = useRef(null);
   const searchRef = useRef(null);
 
-  /* ── Filtered + sorted list ── */
+  /* ── Filtered list ── */
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = items;
-
-    if (activeTab !== "all") {
-      list = list.filter(x => x.tipo === activeTab);
-    }
-    if (q) {
-      list = list.filter(x =>
-        x.nameEs.toLowerCase().includes(q) ||
-        x.nameEn.toLowerCase().includes(q)
-      );
-    }
-    if (sortBy === "name") {
-      list = [...list].sort((a, b) => a.nameEs.localeCompare(b.nameEs, "es"));
-    } else {
-      list = [...list].sort((a, b) => a.tipo.localeCompare(b.tipo));
-    }
+    if (activeTab !== "all") list = list.filter(x => x.tipo === activeTab);
+    if (q) list = list.filter(x =>
+      x.nameEs.toLowerCase().includes(q) ||
+      x.nameEn.toLowerCase().includes(q)
+    );
+    if (sortBy === "name") list = [...list].sort((a, b) => a.nameEs.localeCompare(b.nameEs, "es"));
+    else                   list = [...list].sort((a, b) => a.tipo.localeCompare(b.tipo));
     return list;
   }, [items, search, activeTab, sortBy]);
 
   const visible = useMemo(() => filtered.slice(0, shown), [filtered, shown]);
 
-  /* ── Reset pagination when filter changes ── */
   useEffect(() => { setShown(PAGE_SIZE); }, [search, activeTab, sortBy]);
 
   /* ── Header entrance ── */
@@ -89,31 +278,31 @@ export default function AccesoriosPage() {
     if (loading || !headerRef.current) return;
     anime({
       targets:    headerRef.current.querySelectorAll(".h-part"),
-      translateY: [30, 0],
+      translateY: [24, 0],
       opacity:    [0, 1],
-      duration:   700,
-      delay:      anime.stagger(80),
+      duration:   650,
+      delay:      anime.stagger(70),
       easing:     "easeOutExpo",
     });
   }, [loading]);
 
-  /* ── Grid entrance (on filter/view change) ── */
+  /* ── Grid entrance ── */
   useEffect(() => {
     if (loading || !gridRef.current) return;
     const cards = gridRef.current.querySelectorAll(".acc-wrap");
     if (!cards.length) return;
     anime({
-      targets:  cards,
-      opacity:  [0, 1],
-      translateY: [20, 0],
-      scale:    [0.93, 1],
-      duration: 400,
-      delay:    anime.stagger(18, { grid: [Math.ceil(Math.sqrt(cards.length)), Math.floor(Math.sqrt(cards.length))], from: "first" }),
-      easing:   "easeOutExpo",
+      targets:    cards,
+      opacity:    [0, 1],
+      translateY: [16, 0],
+      scale:      [0.94, 1],
+      duration:   380,
+      delay:      anime.stagger(14, { from: "first" }),
+      easing:     "easeOutExpo",
     });
-  }, [visible, viewSize, loading]);
+  }, [visible, loading]);
 
-  /* ── Keyboard shortcut: focus search on "/" ── */
+  /* ── Keyboard shortcut: "/" focuses search ── */
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "/" && document.activeElement.tagName !== "INPUT") {
@@ -125,7 +314,7 @@ export default function AccesoriosPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  /* ── Counts per type ── */
+  /* ── Counts ── */
   const counts = useMemo(() => ({
     buddy:      items.filter(x => x.tipo === "buddy").length,
     spray:      items.filter(x => x.tipo === "spray").length,
@@ -137,13 +326,27 @@ export default function AccesoriosPage() {
     return (
       <div className="min-h-screen bg-spectrum-darker page-pattern flex items-center justify-center px-4">
         <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">😵</div>
-          <h2 className="text-xl font-bold text-red-300 mb-2">Error cargando accesorios</h2>
+          <h2 style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "1.4rem", fontWeight: 700, color: "#fca5a5", letterSpacing: "0.05em", marginBottom: 8 }}>
+            Error cargando accesorios
+          </h2>
           <p className="text-sm text-red-400/70 mb-5">{error}</p>
-          <button onClick={reload}
-            className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-sm rounded-lg
-                       border border-slate-700 hover:border-spectrum-cyan/30 transition-all">
-            ↺ Reintentar
+          <button
+            onClick={reload}
+            style={{
+              padding: "10px 28px",
+              background: "rgba(0,247,255,0.08)",
+              border: "1px solid rgba(0,247,255,0.25)",
+              borderRadius: 8,
+              color: "rgba(0,247,255,0.9)",
+              fontFamily: "'Rajdhani', sans-serif",
+              fontWeight: 700,
+              fontSize: "0.8rem",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              cursor: "pointer",
+            }}
+          >
+            Reintentar
           </button>
         </div>
       </div>
@@ -153,49 +356,73 @@ export default function AccesoriosPage() {
   return (
     <div className="min-h-screen bg-spectrum-darker page-pattern pb-24">
 
-      {/* ── Hero gradient ── */}
-      <div className="absolute inset-x-0 top-16 h-72 pointer-events-none"
-        style={{ background: "linear-gradient(to bottom, rgba(245,158,11,0.07) 0%, rgba(167,139,250,0.05) 40%, transparent 100%)" }} />
+      {/* Subtle gradient */}
+      <div className="absolute inset-x-0 top-16 h-64 pointer-events-none"
+        style={{ background: "linear-gradient(to bottom, rgba(0,247,255,0.04) 0%, transparent 100%)" }} />
 
       {/* ══ HEADER ══ */}
       <div ref={headerRef} className="relative text-center pt-12 pb-4 px-4 max-w-3xl mx-auto">
-        <p className="h-part opacity-0 text-[10px] font-black tracking-[0.4em] uppercase mb-3"
-          style={{ color: "rgba(245,158,11,0.6)" }}>
+
+        <p className="h-part opacity-0" style={{
+          fontFamily: "'Rajdhani', sans-serif",
+          fontSize: "0.65rem", fontWeight: 700,
+          letterSpacing: "0.45em",
+          color: "rgba(0,247,255,0.5)",
+          textTransform: "uppercase",
+          marginBottom: 12,
+        }}>
           Valorant · Cosméticos
         </p>
-        <h1 className="h-part opacity-0 text-5xl font-display font-black text-white uppercase tracking-widest"
-          style={{ textShadow: "0 0 40px rgba(245,158,11,0.25)" }}>
+
+        <h1 className="h-part opacity-0" style={{
+          fontFamily: "'Rajdhani', 'Impact', sans-serif",
+          fontSize: "clamp(2.4rem, 6vw, 4rem)",
+          fontWeight: 900,
+          color: "#ffffff",
+          textTransform: "uppercase",
+          letterSpacing: "0.04em",
+          textShadow: "0 0 28px rgba(0,247,255,0.35), 0 0 70px rgba(0,247,255,0.12)",
+          margin: "0 0 8px",
+        }}>
           Accesorios
         </h1>
-        <p className="h-part opacity-0 text-slate-500 text-sm mt-2">
-          Explora llaveros, sprays y tarjetas · busca en español o inglés
+
+        <p className="h-part opacity-0" style={{
+          color: "rgba(255,255,255,0.38)",
+          fontSize: "0.82rem",
+          fontFamily: "'Rajdhani', sans-serif",
+          letterSpacing: "0.08em",
+          margin: "0 0 18px",
+        }}>
+          Llaveros, sprays y tarjetas — busca en español o inglés
         </p>
 
-        {/* Divider */}
-        <div className="h-part opacity-0 flex items-center gap-4 justify-center mt-4 max-w-xs mx-auto">
-          <div className="flex-1 h-px bg-gradient-to-r from-transparent to-yellow-500/30" />
-          <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/50" />
-          <div className="flex-1 h-px bg-gradient-to-l from-transparent to-yellow-500/30" />
-        </div>
+        {/* Accent divider */}
+        <div className="h-part opacity-0" style={{
+          height: 1,
+          maxWidth: 200,
+          margin: "0 auto 18px",
+          background: "linear-gradient(90deg, transparent, rgba(0,247,255,0.4), transparent)",
+        }} />
 
-        {/* Stats badges */}
+        {/* Stats */}
         {!loading && (
-          <div className="h-part opacity-0 flex justify-center gap-2 mt-5 flex-wrap">
-            <StatBadge label="🔑" count={counts.buddy}      color="#f59e0b" />
-            <StatBadge label="🎨" count={counts.spray}      color="#a78bfa" />
-            <StatBadge label="🃏" count={counts.playercard} color="#22d3ee" />
+          <div className="h-part opacity-0" style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
+            <StatBadge label="Llaveros" count={counts.buddy}      color="#f59e0b" />
+            <StatBadge label="Sprays"   count={counts.spray}      color="#a78bfa" />
+            <StatBadge label="Tarjetas" count={counts.playercard} color="#22d3ee" />
           </div>
         )}
       </div>
 
       {/* ══ CONTROLS ══ */}
-      <div className="relative max-w-5xl mx-auto px-4 mt-6 space-y-4">
+      <div className="relative max-w-5xl mx-auto px-4 mt-6 space-y-3">
 
-        {/* Search + View toggle row */}
+        {/* Search + Sort */}
         <div className="flex items-center gap-3 flex-wrap justify-center">
           {/* Search */}
-          <div className="relative flex-1 min-w-[260px] max-w-md">
-            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"
+          <div style={{ position: "relative", flex: "1", minWidth: 260, maxWidth: 420 }}>
+            <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 15, height: 15, color: "rgba(255,255,255,0.25)" }}
               fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -206,15 +433,33 @@ export default function AccesoriosPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar en español o inglés…  [/]"
-              className="w-full pl-10 pr-10 py-2.5 bg-slate-800/60 border border-slate-700/40 rounded-xl
-                         text-sm text-white placeholder-slate-600
-                         focus:outline-none focus:border-yellow-500/40 focus:ring-1 focus:ring-yellow-500/20
-                         transition-all duration-200"
+              style={{
+                width: "100%",
+                paddingLeft: 36, paddingRight: 36, paddingTop: 10, paddingBottom: 10,
+                background: "rgba(10,18,32,0.7)",
+                border: "1px solid rgba(0,247,255,0.14)",
+                borderRadius: 9,
+                color: "#e2e8f0",
+                fontSize: "0.82rem",
+                fontFamily: "'Rajdhani', sans-serif",
+                letterSpacing: "0.04em",
+                outline: "none",
+                transition: "border-color 0.2s",
+                boxSizing: "border-box",
+              }}
+              onFocus={e => { e.target.style.borderColor = "rgba(0,247,255,0.35)"; }}
+              onBlur={e => { e.target.style.borderColor = "rgba(0,247,255,0.14)"; }}
             />
             {search && (
-              <button onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button
+                onClick={() => setSearch("")}
+                style={{
+                  position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                  background: "none", border: "none", color: "rgba(255,255,255,0.3)",
+                  cursor: "pointer", padding: 2,
+                }}
+              >
+                <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
                 </svg>
               </button>
@@ -225,75 +470,80 @@ export default function AccesoriosPage() {
           <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value)}
-            className="px-3 py-2.5 bg-slate-800/60 border border-slate-700/40 rounded-xl text-sm
-                       text-slate-300 focus:outline-none focus:border-yellow-500/30 transition-all
-                       cursor-pointer appearance-none pr-8"
-            style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", backgroundSize: "16px" }}
+            style={{
+              padding: "10px 32px 10px 12px",
+              background: "rgba(10,18,32,0.7)",
+              border: "1px solid rgba(0,247,255,0.14)",
+              borderRadius: 9,
+              color: "rgba(255,255,255,0.6)",
+              fontSize: "0.8rem",
+              fontFamily: "'Rajdhani', sans-serif",
+              letterSpacing: "0.06em",
+              outline: "none",
+              cursor: "pointer",
+              appearance: "none",
+              backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2300f7ff40' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E\")",
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "right 10px center",
+              backgroundSize: 14,
+            }}
           >
             <option value="name">A–Z Nombre</option>
             <option value="tipo">Por tipo</option>
           </select>
-
-          {/* View toggle */}
-          <div className="flex gap-1 bg-slate-800/60 border border-slate-700/40 rounded-xl p-1">
-            {[
-              { key: "sm", icon: <GridSmIcon />,  label: "Vista compacta" },
-              { key: "lg", icon: <GridLgIcon />,  label: "Vista grande"   },
-            ].map(({ key, icon, label }) => (
-              <button
-                key={key}
-                onClick={() => setViewSize(key)}
-                title={label}
-                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200
-                            text-slate-400 ${viewSize === key
-                              ? "bg-slate-700 text-white shadow-sm"
-                              : "hover:bg-slate-700/40 hover:text-slate-200"}`}
-              >
-                {icon}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Type tabs */}
-        <div className="flex flex-wrap justify-center gap-1.5 bg-slate-900/50 border border-slate-700/25
-                        rounded-2xl p-2 backdrop-blur-sm">
-          {TYPE_TABS.map(({ key, label, icon, color }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider
-                          rounded-xl transition-all duration-200 border ${
-                activeTab === key
-                  ? "shadow-lg"
-                  : "text-slate-400 border-transparent hover:text-white hover:bg-white/5"
-              }`}
-              style={activeTab === key ? {
-                color,
-                backgroundColor: `${color}15`,
-                borderColor: `${color}45`,
-                boxShadow: `0 0 16px ${color}20`,
-              } : {}}
-            >
-              <span className="text-base leading-none">{icon}</span>
-              {label}
-              {key !== "all" && (
-                <span className="ml-0.5 text-[9px] opacity-60 font-normal tabular-nums">
-                  {counts[key] ?? 0}
-                </span>
-              )}
-            </button>
-          ))}
+        <div style={{
+          display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6,
+          background: "rgba(4,11,20,0.5)",
+          border: "1px solid rgba(0,247,255,0.1)",
+          borderRadius: 12,
+          padding: "8px 10px",
+          backdropFilter: "blur(8px)",
+        }}>
+          {TYPE_TABS.map(({ key, label, color }) => {
+            const active = activeTab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "6px 16px",
+                  borderRadius: 8,
+                  border: active ? `1px solid ${color}40` : "1px solid transparent",
+                  background: active ? `${color}12` : "transparent",
+                  color: active ? color : "rgba(255,255,255,0.35)",
+                  fontFamily: "'Rajdhani', sans-serif",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  boxShadow: active ? `0 0 12px ${color}18` : "none",
+                }}
+              >
+                {label}
+                {key !== "all" && (
+                  <span style={{ fontSize: "0.6rem", opacity: 0.5, fontWeight: 400, fontFamily: "'JetBrains Mono', monospace" }}>
+                    {counts[key] ?? 0}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Result count */}
-        <div className="text-center">
-          <span className="text-xs text-slate-600">
+        <div style={{ textAlign: "center" }}>
+          <span style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "0.68rem", letterSpacing: "0.08em", color: "rgba(255,255,255,0.22)" }}>
             {search
-              ? <><span className="text-slate-300 font-semibold">{filtered.length}</span> resultados para "<span className="text-yellow-400/80">{search}</span>"</>
-              : <><span className="text-slate-400 font-semibold">{filtered.length}</span> {filtered.length === 1 ? "item" : "items"}</>
+              ? <><span style={{ color: "rgba(255,255,255,0.55)" }}>{filtered.length}</span>{" resultados para \""}<span style={{ color: "rgba(0,247,255,0.7)" }}>{search}</span>{"\""}  </>
+              : <><span style={{ color: "rgba(255,255,255,0.45)" }}>{filtered.length}</span>{" items"}</>
             }
-            {shown < filtered.length && <span className="ml-1">(mostrando {shown})</span>}
+            {shown < filtered.length && ` — mostrando ${shown}`}
           </span>
         </div>
       </div>
@@ -301,24 +551,19 @@ export default function AccesoriosPage() {
       {/* ══ GRID ══ */}
       <div className="relative max-w-screen-2xl mx-auto px-4 mt-8">
         {loading ? (
-          <SkeletonGrid size={viewSize} />
+          <SkeletonGrid />
         ) : visible.length === 0 ? (
           <EmptyState query={search} onClear={() => { setSearch(""); setActiveTab("all"); }} />
         ) : (
           <>
-            <div
-              ref={gridRef}
-              className="flex flex-wrap justify-center"
-              style={{ gap: viewSize === "lg" ? "16px" : "10px" }}
-            >
+            <div ref={gridRef} className="flex flex-wrap justify-center" style={{ gap: 16 }}>
               {visible.map(item => (
                 <div key={item.uuid} className="acc-wrap" style={{ opacity: 0 }}>
-                  <AccesorioCard item={item} size={viewSize} />
+                  <AccesorioCard item={item} onClick={setSelectedItem} />
                 </div>
               ))}
             </div>
 
-            {/* Load more */}
             {shown < filtered.length && (
               <LoadMoreBtn
                 shown={shown}
@@ -332,29 +577,58 @@ export default function AccesoriosPage() {
 
       {/* Cache indicator */}
       {fromCache && !loading && (
-        <div className="fixed bottom-4 right-4 z-30 flex items-center gap-1.5 px-3 py-1.5
-                        bg-slate-900/80 border border-slate-700/40 rounded-lg backdrop-blur-sm
-                        text-[10px] text-slate-500 animate-fade-in">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-400/60" />
+        <div style={{
+          position: "fixed", bottom: 16, right: 16, zIndex: 30,
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "5px 12px",
+          background: "rgba(4,11,20,0.85)",
+          border: "1px solid rgba(0,247,255,0.15)",
+          borderRadius: 8,
+          backdropFilter: "blur(8px)",
+          fontFamily: "'Rajdhani', sans-serif",
+          fontSize: "0.65rem",
+          fontWeight: 600,
+          letterSpacing: "0.1em",
+          color: "rgba(255,255,255,0.3)",
+          textTransform: "uppercase",
+        }}>
+          <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#34d399", boxShadow: "0 0 4px #34d399" }} />
           Desde caché
         </div>
       )}
+
+      {/* ══ MODAL ══ */}
+      <ItemModal item={selectedItem} onClose={() => setSelectedItem(null)} />
     </div>
   );
 }
 
-/* ── Sub-components ──────────────────────────── */
+/* ── Sub-components ─────────────────────── */
 function EmptyState({ query, onClear }) {
   return (
-    <div className="text-center py-24">
-      <div className="text-6xl mb-4">🔍</div>
-      <p className="text-slate-400 font-semibold mb-1">
+    <div style={{ textAlign: "center", padding: "80px 0" }}>
+      <p style={{ color: "rgba(255,255,255,0.4)", fontFamily: "'Rajdhani', sans-serif", fontSize: "1rem", fontWeight: 600, letterSpacing: "0.06em", marginBottom: 6 }}>
         {query ? `Sin resultados para "${query}"` : "Sin items en esta categoría"}
       </p>
-      <p className="text-slate-600 text-sm mb-5">Intenta en el otro idioma o ajusta el filtro</p>
-      <button onClick={onClear}
-        className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white
-                   text-sm rounded-lg border border-slate-700 hover:border-slate-600 transition-all">
+      <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "0.8rem", fontFamily: "'Rajdhani', sans-serif", letterSpacing: "0.04em", marginBottom: 20 }}>
+        Intenta en el otro idioma o ajusta el filtro
+      </p>
+      <button
+        onClick={onClear}
+        style={{
+          padding: "9px 24px",
+          background: "rgba(0,247,255,0.07)",
+          border: "1px solid rgba(0,247,255,0.2)",
+          borderRadius: 8,
+          color: "rgba(0,247,255,0.7)",
+          fontFamily: "'Rajdhani', sans-serif",
+          fontSize: "0.75rem",
+          fontWeight: 700,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          cursor: "pointer",
+        }}
+      >
         Limpiar filtros
       </button>
     </div>
@@ -367,38 +641,36 @@ function LoadMoreBtn({ shown, total, onLoad }) {
   const handle = () => {
     onLoad();
     if (btnRef.current) {
-      anime({ targets: btnRef.current, scale: [0.95, 1], duration: 300, easing: "easeOutBack" });
+      anime({ targets: btnRef.current, scale: [0.95, 1], duration: 280, easing: "easeOutBack" });
     }
   };
   return (
-    <div className="text-center mt-12">
+    <div style={{ textAlign: "center", marginTop: 48 }}>
       <button
         ref={btnRef}
         onClick={handle}
-        className="px-8 py-3 bg-slate-800/80 hover:bg-slate-700/80 text-white font-semibold text-sm
-                   rounded-xl border border-slate-700/50 hover:border-slate-600/60
-                   transition-all duration-200 hover:scale-105 active:scale-95
-                   backdrop-blur-sm"
+        style={{
+          padding: "12px 36px",
+          background: "rgba(0,247,255,0.07)",
+          border: "1px solid rgba(0,247,255,0.2)",
+          borderRadius: 10,
+          color: "rgba(0,247,255,0.8)",
+          fontFamily: "'Rajdhani', sans-serif",
+          fontSize: "0.8rem",
+          fontWeight: 700,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          cursor: "pointer",
+          transition: "all 0.2s",
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,247,255,0.12)"; e.currentTarget.style.borderColor = "rgba(0,247,255,0.35)"; }}
+        onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,247,255,0.07)"; e.currentTarget.style.borderColor = "rgba(0,247,255,0.2)"; }}
       >
         Cargar {Math.min(PAGE_SIZE, remaining)} más
-        <span className="ml-2 text-slate-500 font-normal text-xs">({remaining} restantes)</span>
+        <span style={{ marginLeft: 8, opacity: 0.45, fontWeight: 400, fontSize: "0.7rem" }}>
+          ({remaining} restantes)
+        </span>
       </button>
     </div>
   );
 }
-
-/* ── Grid view icons ─────────────────────────── */
-const GridSmIcon = () => (
-  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-    <rect x="2"  y="2"  width="7" height="7" rx="1.5"/>
-    <rect x="11" y="2"  width="7" height="7" rx="1.5"/>
-    <rect x="2"  y="11" width="7" height="7" rx="1.5"/>
-    <rect x="11" y="11" width="7" height="7" rx="1.5"/>
-  </svg>
-);
-const GridLgIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 20 20" strokeWidth={1.8}>
-    <rect x="2" y="2" width="7" height="16" rx="1.5"/>
-    <rect x="11" y="2" width="7" height="16" rx="1.5"/>
-  </svg>
-);

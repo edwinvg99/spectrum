@@ -23,7 +23,8 @@ const PlayerGrid = () => {
     cacheStatus,
     isUpdatingCache,
     handleRefresh,
-    handleClearCache
+    handleClearCache,
+    handlePlayerRefresh,
   } = usePlayerData();
 
   // Renderizado condicional basado en el estado
@@ -67,7 +68,7 @@ const PlayerGrid = () => {
       ) : (
         <>
           <ErrorMessage error={error} />
-          <PlayersGrid playersData={playersData} />
+          <PlayersGrid playersData={playersData} onPlayerRefresh={handlePlayerRefresh} />
         </>
       )}
 

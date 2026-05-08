@@ -1,23 +1,11 @@
 // src/components/MapCard.jsx
 import React from 'react';
-import { useAgentComposition } from "../hooks/useAgentComposition";
-
-// Componente Skeleton para las imágenes de agente
-const AgentSkeleton = () => (
-    <div className="w-10 h-10 rounded-full bg-slate-700 animate-pulse border-2 border-slate-600/50"></div>
-);
 
 export default function MapCard({ mapa }) {
-    const { composition, loadingComposition, compositionError } = useAgentComposition(mapa.nombre);
 
     // Función auxiliar para obtener el slug del mapa
     const getMapSlug = (nombreMapa) => {
         return nombreMapa.toLowerCase().replace(/\s+/g, "-");
-    };
-
-    // Nueva función para obtener el slug del agente
-    const getAgentSlug = (nombreAgente) => {
-        return nombreAgente.toLowerCase().replace(/[^a-z0-9]/g, '');
     };
 
     const mapSlug = getMapSlug(mapa.nombre);
@@ -52,55 +40,6 @@ export default function MapCard({ mapa }) {
                     <h2 className="nombre-mapa text-4xl sm:text-5xl font-black text-white ">
                         {mapa.nombre}
                     </h2>
-                </div>
-
-                {/* Sección para la composición de agentes - CONTENEDOR MODIFICADO */}
-                {/* 🎯 CAMBIO CLAVE AQUÍ: `flex flex-col items-center justify-center` */}
-                <div className="absolute inset-y-0 right-0 z-40 p-4 flex flex-col items-center justify-center"> 
-                   
-                    {loadingComposition ? (
-                        <div className="flex flex-col items-center gap-2"> 
-                            {[...Array(5)].map((_, i) => ( 
-                                <AgentSkeleton key={i} />
-                            ))}
-                        </div>
-                    ) : compositionError ? (
-                        <p className="text-red-400 text-sm text-center">Error al cargar agentes</p>
-                    ) : (
-                        <div className="flex flex-col items-center gap-2"> 
-                            {composition && composition.length > 0 ? (
-                                composition.map((agent, agentIdx) => {
-                                    const agentSlug = getAgentSlug(agent.name);
-                                    const agentLineupUrl = `https://blitz.gg/valorant/lineups?map=${mapSlug}&agent=${agentSlug}`;
-
-                                    return (
-                                        <a 
-                                            key={agentIdx} 
-                                            href={agentLineupUrl} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            title={`Ver lineups de ${agent.name} en ${mapa.nombre}`}
-                                            className="group flex items-center justify-end mr-5" 
-                                        >
-                                     
-                                            <img
-                                                src={agent.image}
-                                                alt={agent.name}
-                                                className="w-14 h-14 rounded-full border-2 border-white/50 shadow-md transform transition-transform duration-200 hover:scale-110"
-                                            />
-                                        </a>
-                                    );
-                                })
-                            ) : (
-                                <div className="flex flex-col items-center gap-2">
-                                    {[...Array(5)].map((_, i) => (
-                                        <AgentSkeleton key={i} />
-                                    ))}
-                                    <p className="text-slate-400 text-xs text-center mt-1">No hay datos de composición.</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
                 </div>
 
                 {/* Botón/Enlace de Lineups general (solo mapa) */}

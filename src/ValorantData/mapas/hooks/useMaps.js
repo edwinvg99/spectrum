@@ -37,9 +37,12 @@ export function useMaps(mapasExcluidos = []) {
 
       // ── 3. Filter + shape ─────────────────────────────────────────────────
       let data = rawData;
-      if (mapasExcluidos.length > 0) {
-        data = data.filter((m) => !mapasExcluidos.includes(m.displayName));
-      }
+      data = data.filter((m) => {
+        if (mapasExcluidos.includes(m.displayName)) return false;
+        // Exclude maps that belong to the "Escaramuza" game mode
+        if (m.tacticalDescription?.toLowerCase().includes('escaramuza')) return false;
+        return true;
+      });
 
       const formateados = data.map((m) => ({
         uuid:            m.uuid,

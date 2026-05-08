@@ -13,23 +13,8 @@ export const PLAYERS = [
     region: "latam",
   },
   {
-    name: "ShereKhan",
-    tag: "neko",
-    region: "latam",
-  },
-  {
-    name: "navidarx",
-    tag: "LAN",
-    region: "latam",
-  },
-  {
     name: "Lurasaga",
     tag: "peru",
-    region: "latam",
-  },
-  {
-    name: "21savage",
-    tag: "2908",
     region: "latam",
   },
   {
@@ -38,13 +23,8 @@ export const PLAYERS = [
     region: "latam",
   },
   {
-    name: "Karito",
-    tag: "1610",
-    region: "latam",
-  },
-  {
-    name: "Santi Arias",
-    tag: "004",
+    name: "stargirl",
+    tag: "743",
     region: "latam",
   },
   {
@@ -60,6 +40,11 @@ export const PLAYERS = [
   {
     name: "VeIox",
     tag: "Rolo",
+    region: "latam",
+  },
+    {
+    name: "MPX",
+    tag: "666",
     region: "latam",
   },
 ];
@@ -150,10 +135,11 @@ export const UI_CONFIG = {
 // CONFIGURACIÓN DE CACHÉ
 // ================================
 export const CACHE_CONFIG = {
-  TTL: 5 * 60 * 1000, // 5 minutos
-  MAX_AGE: 30 * 60 * 1000, // 30 minutos máximo
-  AUTO_UPDATE_INTERVAL: 5 * 60 * 1000, // Verificar cada 5 minutos
-  VERSION: "1.3.0",   // keep in sync with src/utils/constants.js
+  TTL:                  6  * 60 * 60 * 1000,       // 6h  — stale threshold
+  MAX_AGE:              24 * 60 * 60 * 1000,       // 24h — hard expire
+  AUTO_UPDATE_INTERVAL: 60 * 60 * 1000,            // check every 1h
+  PLAYER_CARD_TTL:      7  * 24 * 60 * 60 * 1000,  // 7 days — card UUIDs rarely change
+  VERSION: "2.0.0",
 };
 
 // ================================

@@ -15,23 +15,32 @@ const FooterSection = ({ cacheStatus }) => {
   );
 };
 
-// Componente para mostrar información del caché
-const CacheInfo = ({ cacheStatus }) => (
-  <div className="flex items-center gap-4 text-slate-600 text-xs">
-    <div className="flex items-center gap-2">
-      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-      <span>Caché inteligente activo</span>
-    </div>
-    
-    {cacheStatus?.hasCache && (
+const CacheInfo = ({ cacheStatus }) => {
+  const nextUpdateMs = cacheStatus?.nextUpdateIn || 0;
+  const nextH = Math.floor(nextUpdateMs / 3600000);
+  const nextM = Math.round((nextUpdateMs % 3600000) / 60000);
+  const nextLabel = nextH > 0 ? `${nextH}h ${nextM}m` : `${nextM}m`;
+
+  return (
+    <div className="flex items-center gap-4 text-slate-600 text-xs">
       <div className="flex items-center gap-2">
-        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-        <span>
-          Próxima actualización: {Math.round(cacheStatus.nextUpdateIn / 1000)}s
-        </span>
+        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+        <span>Caché 24h activo</span>
       </div>
-    )}
-  </div>
-);
+      {cacheStatus?.hasCache && nextUpdateMs > 0 && (
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-blue-500 rounded-full" />
+          <span>Próxima actualización: {nextLabel}</span>
+        </div>
+      )}
+      {cacheStatus?.hasCache && nextUpdateMs <= 0 && (
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+          <span>Actualizando en segundo plano…</span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default FooterSection;

@@ -1,63 +1,126 @@
 import React from 'react';
-import { useNoticiasValorant } from '../hooks/useNews'; // Asegúrate de que la ruta sea correcta
-import { NewsLoadingSkeleton } from '../../../sharred/loadingSkeletons';
+import { useNoticiasValorant }  from '../hooks/useNews';
+import { NewsLoadingSkeleton }  from '../../../sharred/loadingSkeletons';
 
 function NoticiasValorantSection() {
   const { noticias, cargando, error } = useNoticiasValorant();
 
-  if (cargando) {
-    return (
-    <NewsLoadingSkeleton/>  
-    );
-  }
+  if (cargando) return <NewsLoadingSkeleton />;
 
   if (error) {
     return (
-      <div className="p-4 text-center bg-red-800 rounded-lg text-white">
-        <p className="font-bold">Error al cargar noticias:</p>
-        <p className="text-sm">{error}</p>
+      <div style={{
+        padding: "32px 20px", textAlign: "center",
+        background: "rgba(248,113,113,0.06)",
+        border: "1px solid rgba(248,113,113,0.2)",
+        borderRadius: 12,
+      }}>
+        <p style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, color: "#fca5a5", marginBottom: 4 }}>
+          Error al cargar noticias
+        </p>
+        <p style={{ fontSize: "0.78rem", color: "rgba(248,113,113,0.6)" }}>{error}</p>
       </div>
     );
   }
 
+  if (noticias.length === 0) {
+    return (
+      <p style={{
+        textAlign: "center",
+        fontFamily: "'Rajdhani', sans-serif",
+        color: "rgba(255,255,255,0.3)",
+        letterSpacing: "0.08em",
+        padding: "40px 0",
+      }}>
+        No se encontraron noticias en este momento.
+      </p>
+    );
+  }
+
   return (
-    <div >
-      {noticias.length === 0 ? (
-        <div className="text-center text-white text-lg p-4">
-          <p>No se encontraron noticias en este momento.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6"> {/* Ahora siempre 1 columna para la sección de noticias */}
-          {noticias.map((noticia, index) => (
-            <a
-              key={index}
-              href={`${noticia.url_path}`} // Asegúrate de tener la URL completa
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block group bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
-            >
-              <div className="p-4">
-                <h3 className="text-lg font-bold text-white mb-1 group-hover:text-red-500 transition-colors duration-300 line-clamp-2">
-                  {noticia.title}
-                </h3>
-                <p className="text-gray-400 text-xs line-clamp-3">
-                  {noticia.description}
-                </p>
-                <div className="flex justify-between items-center text-gray-500 text-[10px] mt-2">
-                  <span>{new Date(noticia.date).toLocaleDateString('es-CO', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}</span>
-                  <span className="text-red-400 group-hover:text-red-300 transition-colors duration-300">
-                    Leer más &rarr;
-                  </span>
-                </div>
-              </div>
-            </a>
-          ))}
-        </div>
-      )}
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {noticias.map((noticia, index) => (
+        <a
+          key={index}
+          href={noticia.url_path}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "block",
+            background: "rgba(10,18,32,0.75)",
+            border: "1px solid rgba(0,247,255,0.1)",
+            borderRadius: 12,
+            padding: "18px 20px",
+            textDecoration: "none",
+            transition: "border-color 0.2s, box-shadow 0.2s",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = "rgba(0,247,255,0.28)";
+            e.currentTarget.style.boxShadow   = "0 0 20px rgba(0,247,255,0.06)";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = "rgba(0,247,255,0.1)";
+            e.currentTarget.style.boxShadow   = "none";
+          }}
+        >
+          {/* Title */}
+          <h3 style={{
+            margin: "0 0 6px",
+            fontFamily: "'Rajdhani', 'Impact', sans-serif",
+            fontSize: "0.95rem",
+            fontWeight: 700,
+            letterSpacing: "0.02em",
+            color: "#e2e8f0",
+            lineHeight: 1.35,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}>
+            {noticia.title}
+          </h3>
+
+          {/* Description */}
+          {noticia.description && (
+            <p style={{
+              margin: "0 0 10px",
+              fontSize: "0.75rem",
+              color: "rgba(255,255,255,0.35)",
+              lineHeight: 1.6,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}>
+              {noticia.description}
+            </p>
+          )}
+
+          {/* Footer row */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{
+              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+              fontSize: "0.65rem",
+              color: "rgba(255,255,255,0.22)",
+              letterSpacing: "0.04em",
+            }}>
+              {new Date(noticia.date).toLocaleDateString('es-CO', {
+                year: 'numeric', month: 'short', day: 'numeric',
+              })}
+            </span>
+            <span style={{
+              fontFamily: "'Rajdhani', sans-serif",
+              fontSize: "0.68rem",
+              fontWeight: 700,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "rgba(0,247,255,0.6)",
+            }}>
+              Leer más &rarr;
+            </span>
+          </div>
+        </a>
+      ))}
     </div>
   );
 }

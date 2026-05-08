@@ -53,6 +53,10 @@ export default defineConfig({
           "chunk-tienda": ["./src/ValorantData/tienda/tienda.Valorant.jsx"],
           "chunk-torneos": ["./src/torneos/TournamentPage.jsx"],
           "chunk-profile": ["./src/integrantes/components/PlayerProfilePage.jsx"],
+          "chunk-accesorios": [
+            "./src/ValorantData/accesorios/components/AccesoriosPage.jsx",
+            "./src/ValorantData/accesorios/components/AccesorioCard.jsx",
+          ],
         },
       },
     },

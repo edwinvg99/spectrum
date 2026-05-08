@@ -2,17 +2,16 @@
 // PLAYER CONFIGURATION
 // ===============================
 export const PLAYERS = [
-  { name: "Edwin灵DVS", tag: "COL", region: "latam" },
-  { name: "Pinunaaa", tag: "Pau", region: "latam" },
-  { name: "MPX", tag: "666", region: "latam" },
-  { name: "Lurasaga", tag: "peru", region: "latam" },
-  { name: "21savage", tag: "2908", region: "latam" },
-  { name: "COL Barrilete", tag: "COL", region: "latam" },
-  { name: "stargirl", tag: "743", region: "latam" },
-  { name: "Santi Arias", tag: "004", region: "latam" },
-  { name: "Parca", tag: "ARQ22", region: "latam" },
-  { name: "COL EL Diablo", tag: "CLDAS", region: "latam" },
-  { name: "VeIox", tag: "Rolo", region: "latam" },
+
+      { name: "Edwin灵DVS",    tag: "COL",   region: "latam" },
+      { name: "Pinunaaa",      tag: "Pau",   region: "latam" },
+      { name: "Lurasaga",      tag: "peru",  region: "latam" },
+      { name: "COL Barrilete", tag: "COL",   region: "latam" },
+      { name: "stargil",        tag: "743",  region: "latam" },
+      { name: "Parca",         tag: "ARQ22", region: "latam" },
+      { name: "COL EL Diablo", tag: "CLDAS", region: "latam" },
+      { name: "VeIox",         tag: "Rolo",  region: "latam" },
+      { name: "MPX",           tag: "666",   region: "latam" },
 ];
 
 // ================================

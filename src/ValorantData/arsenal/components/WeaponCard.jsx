@@ -12,7 +12,7 @@ const categoryColors = {
 };
 
 // Stat bar component
-function StatBar({ label, value, max, suffix = "" }) {
+function StatBar({ label, value, max, suffix = "", color = "#00f7ff" }) {
   const pct = Math.min((value / max) * 100, 100);
   return (
     <div className="space-y-0.5">
@@ -22,10 +22,13 @@ function StatBar({ label, value, max, suffix = "" }) {
           {value}{suffix}
         </span>
       </div>
-      <div className="h-1 bg-slate-700/50 rounded-full overflow-hidden">
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
         <div
-          className="h-full bg-gradient-to-r from-spectrum-cyan to-spectrum-blue rounded-full transition-all duration-500"
-          style={{ width: `${pct}%` }}
+          className="h-full rounded-full"
+          style={{
+            width: `${pct}%`,
+            background: `linear-gradient(90deg, ${color}, ${color}88)`,
+          }}
         />
       </div>
     </div>

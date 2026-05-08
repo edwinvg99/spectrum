@@ -1,100 +1,62 @@
 import { useState, useEffect, useCallback } from 'react';
 import { valorantAPI } from '../../../server/services/valorantApi.jsx';
 import { cacheService } from '../../../server/services/cacheService.js';
-import { PLAYERS, LOADING_STATES } from '../../../server/utils/constants.js';
+import { PLAYERS, LOADING_STATES, CACHE_CONFIG } from '../../../server/utils/constants.js';
+
+const sortByElo = (players) =>
+  [...players].sort((a, b) => (b.mmrData?.elo || 0) - (a.mmrData?.elo || 0));
 
 export const usePlayerData = () => {
-  const [playersData, setPlayersData] = useState([]);
-  const [loadingState, setLoadingState] = useState(LOADING_STATES.LOADING);
-  const [error, setError] = useState(null);
-  const [serverStatus, setServerStatus] = useState(null);
-  const [cacheStatus, setCacheStatus] = useState(null);
+  const [playersData,     setPlayersData]     = useState([]);
+  const [loadingState,    setLoadingState]    = useState(LOADING_STATES.LOADING);
+  const [error,           setError]           = useState(null);
+  const [serverStatus,    setServerStatus]    = useState(null);
+  const [cacheStatus,     setCacheStatus]     = useState(null);
   const [isUpdatingCache, setIsUpdatingCache] = useState(false);
 
   const updateCacheStatus = useCallback(() => {
-    const status = cacheService.getCacheStatus();
-    setCacheStatus(status);
+    setCacheStatus(cacheService.getCacheStatus());
   }, []);
 
   const checkServerHealth = async () => {
-    console.log('🏥 Verificando estado del servidor...');
-    const healthCheck = await valorantAPI.checkServerHealth();
-    setServerStatus(healthCheck);
-    if (healthCheck.status !== 'OK') {
-      throw new Error('Servidor backend no disponible');
-    }
-    console.log('✅ Servidor backend funcionando correctamente');
+    const health = await valorantAPI.checkServerHealth();
+    setServerStatus(health);
+    if (health.status !== 'OK') throw new Error('Servidor backend no disponible');
   };
 
-  // Función para cargar y ORDENAR datos de jugadores
   const loadPlayersData = async (forceRefresh = false) => {
-    console.log('📊 Cargando datos de jugadores...');
-    
     const result = await valorantAPI.getPlayersDataWithCache(PLAYERS, forceRefresh);
-    
-    // --- INICIO DE LA LÓGICA DE ORDENAMIENTO ---
-    // Clonamos el array para no mutar el original antes de ordenar
-    const sortedPlayers = [...result.data].sort((a, b) => {
-      // Accedemos al ELO de mmrData de cada jugador.
-      // Si el ELO no está disponible, usamos 0 para el propósito de ordenamiento.
-      const eloA = a.mmrData?.elo || 0;
-      const eloB = b.mmrData?.elo || 0;
-      
-      // Ordena de mayor ELO a menor ELO (descendente)
-      return eloB - eloA;
-    });
-
-    setPlayersData(sortedPlayers); // Establecemos los datos YA ORDENADOS
-    // --- FIN DE LA LÓGICA DE ORDENAMIENTO ---
-
+    setPlayersData(sortByElo(result.data));
     updateCacheStatus();
-    
+
     if (result.fromCache) {
-      console.log(`⚡ Datos cargados desde caché (${Math.round(result.age / 1000)}s)`);
-      if (result.isStale) {
-        setIsUpdatingCache(true);
-      }
-    } else {
-      console.log('📡 Datos cargados desde API');
+      if (result.isStale) setIsUpdatingCache(true);
     }
-    
-    console.log('🎉 Datos de jugadores cargados exitosamente');
   };
 
-  // Cargar datos desde caché (también ordenaremos aquí si es necesario)
   const loadPlayersDataFromCache = () => {
-    const cachedResult = cacheService.getPlayersData();
-    if (cachedResult) {
-      // Ordenamos los datos del caché antes de establecerlos en el estado
-      const sortedPlayers = [...cachedResult.data].sort((a, b) => {
-        const eloA = a.mmrData?.elo || 0;
-        const eloB = b.mmrData?.elo || 0;
-        return eloB - eloA;
-      });
-      setPlayersData(sortedPlayers);
+    const cached = cacheService.getPlayersData();
+    if (cached) {
+      setPlayersData(sortByElo(cached.data));
       updateCacheStatus();
     }
   };
 
-  // Resto del hook permanece igual...
   const initializeApp = async () => {
-    console.log('🚀 Inicializando aplicación...');
     setLoadingState(LOADING_STATES.LOADING);
     setError(null);
-    
     try {
       await checkServerHealth();
       await loadPlayersData();
       setLoadingState(LOADING_STATES.SUCCESS);
     } catch (err) {
-      console.error('💥 Error inicializando aplicación:', err);
+      console.error('[usePlayerData] Init error:', err);
       setError(err.message);
       setLoadingState(LOADING_STATES.ERROR);
     }
   };
 
   const handleRefresh = (forceRefresh = true) => {
-    console.log(`🔄 ${forceRefresh ? 'Refresh forzado' : 'Refresh normal'}...`);
     setIsUpdatingCache(forceRefresh);
     loadPlayersData(forceRefresh);
   };
@@ -105,25 +67,40 @@ export const usePlayerData = () => {
     handleRefresh(true);
   };
 
+  /**
+   * Refresh a single player's data in real time (called when user clicks a card).
+   * Updates both the local state and the cache entry for that player.
+   */
+  const handlePlayerRefresh = useCallback(async (name, tag, region = 'latam') => {
+    const fresh = await valorantAPI.refreshSinglePlayer(name, tag, region);
+    if (!fresh) return;
+
+    setPlayersData((prev) => {
+      const updated = prev.map((p) =>
+        p.name === name && p.tag === tag ? { ...p, ...fresh } : p
+      );
+      return sortByElo(updated);
+    });
+    updateCacheStatus();
+  }, [updateCacheStatus]);
+
   useEffect(() => {
     initializeApp();
     updateCacheStatus();
-    
+
     const handleCacheUpdate = () => {
-      console.log('🔔 Caché actualizado, refrescando datos...');
-      loadPlayersDataFromCache(); // Esto ahora ordenará
+      loadPlayersDataFromCache();
       updateCacheStatus();
       setIsUpdatingCache(false);
     };
-
     window.addEventListener('cacheUpdated', handleCacheUpdate);
-    
+
+    // Check every hour whether the 6h stale threshold has been crossed
     const autoUpdateInterval = setInterval(() => {
       if (cacheService.getCacheStatus().isStale) {
-        console.log('⏰ Actualización automática programada');
         handleRefresh(false);
       }
-    }, 5 * 60 * 1000);
+    }, CACHE_CONFIG.AUTO_UPDATE_INTERVAL);
 
     return () => {
       window.removeEventListener('cacheUpdated', handleCacheUpdate);
@@ -140,8 +117,7 @@ export const usePlayerData = () => {
     isUpdatingCache,
     handleRefresh,
     handleClearCache,
-    initializeApp
+    handlePlayerRefresh,
+    initializeApp,
   };
 };
-
-

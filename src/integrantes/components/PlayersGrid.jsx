@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import PlayerCard from './PlayerCard';
 import { staggerGrid } from '../../utils/animations';
 
-const PlayersGrid = ({ playersData }) => {
+const PlayersGrid = ({ playersData, onPlayerRefresh }) => {
   const gridRef  = useRef(null);
   const navigate = useNavigate();
 
@@ -14,11 +14,14 @@ const PlayersGrid = ({ playersData }) => {
   }, [playersData]);
 
   const handlePlayerClick = (player) => {
-    const name = player?.playerData?.name ?? player?.name ?? '';
-    const tag  = player?.playerData?.tag  ?? player?.tag  ?? '';
-    if (name && tag) {
-      navigate(`/integrantes/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
-    }
+    const name   = player?.playerData?.name   ?? player?.name   ?? '';
+    const tag    = player?.playerData?.tag    ?? player?.tag    ?? '';
+    const region = player?.region ?? 'latam';
+    if (!name || !tag) return;
+
+    // Refresh this player's data in the background while navigating to their profile
+    onPlayerRefresh?.(name, tag, region);
+    navigate(`/integrantes/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
   };
 
   return (
@@ -37,6 +40,7 @@ const PlayersGrid = ({ playersData }) => {
             <PlayerCard
               playerData={player.playerData}
               mmrData={player.mmrData}
+              peakData={player.peakData}
               isLoading={player.isLoading}
               error={player.error}
               playerInfo={player}
