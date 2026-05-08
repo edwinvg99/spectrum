@@ -260,4 +260,250 @@ router.get('/agent-composition/:region/:name/:tag', async (req, res) => {
   }
 });
 
+// ── Agent-role lookup (Valorant as of 2024) ──────────────────────────────────
+const AGENT_ROLES = {
+  // Duelists
+  Jett:'Duelista', Reyna:'Duelista', Raze:'Duelista', Phoenix:'Duelista',
+  Yoru:'Duelista', Neon:'Duelista', Iso:'Duelista',
+  // Initiators
+  Sova:'Iniciador', Breach:'Iniciador', Skye:'Iniciador', Kay:'Iniciador',
+  'KAY/O':'Iniciador', Fade:'Iniciador', Gekko:'Iniciador', Tejo:'Iniciador',
+  // Controllers
+  Brimstone:'Controlador', Viper:'Controlador', Omen:'Controlador',
+  Astra:'Controlador', Harbor:'Controlador', Clove:'Controlador',
+  // Sentinels
+  Killjoy:'Centinela', Cypher:'Centinela', Sage:'Centinela',
+  Chamber:'Centinela', Deadlock:'Centinela', Vyse:'Centinela',
+};
+const agentRole = (name) => {
+  if (!name) return 'Duelista';
+  // KAY/O appears as KAY/O or KAYO in API
+  if (name.toUpperCase().startsWith('KAY')) return 'Iniciador';
+  return AGENT_ROLES[name] || 'Duelista';
+};
+
+// ── GET /match-history/:region/:name/:tag  ───────────────────────────────────
+router.get('/match-history/:region/:name/:tag', async (req, res) => {
+  try {
+    const { region, name, tag } = req.params;
+    const size = Math.min(parseInt(req.query.size) || 15, 20);
+
+    console.log(`📋 Fetching match history for ${name}#${tag} in ${region}`);
+
+    const [matchesRes, mmrRes] = await Promise.all([
+      fetch(
+        `https://api.henrikdev.xyz/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?mode=competitive&size=${size}`,
+        { headers: { Authorization: API_KEY, Accept: '*/*' } }
+      ),
+      fetch(
+        `https://api.henrikdev.xyz/valorant/v1/mmr-history/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`,
+        { headers: { Authorization: API_KEY, Accept: '*/*' } }
+      ),
+    ]);
+
+    const [matchesData, mmrData] = await Promise.all([
+      matchesRes.json().catch(() => ({ data: [] })),
+      mmrRes.json().catch(() => ({ data: [] })),
+    ]);
+
+    const rawMatches = matchesData?.data || [];
+    const rawMmr    = mmrData?.data || [];
+
+    // Format match list
+    const matches = rawMatches.map((m) => {
+      const allPlayers = m.players?.all_players || [];
+      const me = allPlayers.find(
+        (p) => p.name?.toLowerCase() === name.toLowerCase() &&
+               p.tag?.toLowerCase()  === tag.toLowerCase()
+      ) || allPlayers[0];
+
+      if (!me) return null;
+
+      const myTeam   = me.team?.toLowerCase();            // 'blue' | 'red'
+      const blueWon  = m.teams?.blue?.won;
+      const myWin    = myTeam === 'blue' ? blueWon : !blueWon;
+      const blueR    = m.teams?.blue?.rounds_won  ?? 0;
+      const redR     = m.teams?.red?.rounds_won   ?? 0;
+      const score    = myTeam === 'blue' ? `${blueR}-${redR}` : `${redR}-${blueR}`;
+      const kills    = me.stats?.kills   ?? 0;
+      const deaths   = me.stats?.deaths  ?? 1;
+      const assists  = me.stats?.assists ?? 0;
+      const kd       = deaths > 0 ? (kills / deaths).toFixed(2) : kills.toFixed(2);
+      const agent    = me.character || 'Unknown';
+
+      return {
+        matchId:         m.metadata?.matchid,
+        map:             m.metadata?.map || 'Unknown',
+        agent,
+        agentImage:      me.assets?.agent?.small || '',
+        role:            agentRole(agent),
+        result:          myWin ? 'win' : 'loss',
+        score,
+        kills,
+        deaths,
+        assists,
+        headshots:       me.stats?.headshots  ?? 0,
+        bodyshots:       me.stats?.bodyshots  ?? 0,
+        legshots:        me.stats?.legshots   ?? 0,
+        avgCombatScore:  me.average_combat_score ?? 0,
+        kdRatio:         kd,
+        startedAt:       m.metadata?.game_start_patched || '',
+      };
+    }).filter(Boolean);
+
+    // Format ELO progression from mmr-history (already ordered newest-first → reverse for chart)
+    const mmrHistory = [...rawMmr].reverse().map((e) => ({
+      elo:    e.elo          ?? 0,
+      rank:   e.currenttierpatched || 'Unranked',
+      change: e.mmr_change_to_last_game ?? 0,
+    }));
+
+    console.log(`✅ Match history fetched: ${matches.length} matches`);
+    res.json({ status: 'success', matches, mmrHistory });
+  } catch (error) {
+    console.error('❌ Error fetching match history:', error);
+    res.status(500).json({ status: 'error', matches: [], mmrHistory: [], message: error.message });
+  }
+});
+
+// ── GET /player-stats/:region/:name/:tag  ────────────────────────────────────
+router.get('/player-stats/:region/:name/:tag', async (req, res) => {
+  try {
+    const { region, name, tag } = req.params;
+    const size = 15; // analyse last 15 competitive matches
+
+    console.log(`📊 Computing player stats for ${name}#${tag}`);
+
+    const response = await fetch(
+      `https://api.henrikdev.xyz/valorant/v3/matches/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?mode=competitive&size=${size}`,
+      { headers: { Authorization: API_KEY, Accept: '*/*' } }
+    );
+
+    const data = await response.json().catch(() => ({ data: [] }));
+    const rawMatches = data?.data || [];
+
+    if (!rawMatches.length) {
+      return res.json({ status: 'no_data', stats: null });
+    }
+
+    // Aggregate stats across matches
+    let totalKills = 0, totalDeaths = 0, totalAssists = 0;
+    let totalHeadshots = 0, totalBodyshots = 0, totalLegshots = 0;
+    let totalScore = 0, wins = 0;
+    const agentMap  = {};
+    const roleCount = {};
+    let validMatches = 0;
+
+    rawMatches.forEach((m) => {
+      const allPlayers = m.players?.all_players || [];
+      const me = allPlayers.find(
+        (p) => p.name?.toLowerCase() === name.toLowerCase() &&
+               p.tag?.toLowerCase()  === tag.toLowerCase()
+      );
+      if (!me) return;
+
+      validMatches++;
+      const myTeam  = me.team?.toLowerCase();
+      const blueWon = m.teams?.blue?.won;
+      if (myTeam === 'blue' ? blueWon : !blueWon) wins++;
+
+      const k = me.stats?.kills   ?? 0;
+      const d = me.stats?.deaths  ?? 0;
+      const a = me.stats?.assists ?? 0;
+      totalKills    += k;
+      totalDeaths   += d;
+      totalAssists  += a;
+      totalHeadshots += me.stats?.headshots ?? 0;
+      totalBodyshots += me.stats?.bodyshots ?? 0;
+      totalLegshots  += me.stats?.legshots  ?? 0;
+      totalScore    += me.average_combat_score ?? 0;
+
+      const agent = me.character || 'Unknown';
+      const role  = agentRole(agent);
+      if (!agentMap[agent]) agentMap[agent] = { name: agent, role, games: 0, kills: 0, deaths: 0, assists: 0, image: me.assets?.agent?.small || '' };
+      agentMap[agent].games++;
+      agentMap[agent].kills   += k;
+      agentMap[agent].deaths  += d;
+      agentMap[agent].assists += a;
+      roleCount[role] = (roleCount[role] || 0) + 1;
+    });
+
+    if (!validMatches) return res.json({ status: 'no_data', stats: null });
+
+    const totalShots = totalHeadshots + totalBodyshots + totalLegshots;
+    const hsPercent  = totalShots > 0 ? Math.round((totalHeadshots / totalShots) * 100) : 0;
+    const kd  = totalDeaths > 0 ? parseFloat((totalKills / totalDeaths).toFixed(2)) : totalKills;
+    const kda = totalDeaths > 0 ? parseFloat(((totalKills + totalAssists / 3) / totalDeaths).toFixed(2)) : totalKills;
+
+    const topAgents = Object.values(agentMap)
+      .map(a => ({
+        ...a,
+        kda: a.deaths > 0 ? parseFloat(((a.kills + a.assists / 3) / a.deaths).toFixed(2)) : a.kills,
+      }))
+      .sort((a, b) => b.games - a.games)
+      .slice(0, 5);
+
+    const primaryRole = Object.entries(roleCount).sort(([,a],[,b]) => b - a)[0]?.[0] || null;
+
+    const stats = {
+      matchesPlayed:        validMatches,
+      wins,
+      winRate:              Math.round((wins / validMatches) * 100),
+      kd,
+      kda,
+      hsPercent,
+      avgScore:             Math.round(totalScore / validMatches),
+      avgKillsPerMatch:     (totalKills   / validMatches).toFixed(1),
+      avgDeathsPerMatch:    (totalDeaths  / validMatches).toFixed(1),
+      avgAssistsPerMatch:   (totalAssists / validMatches).toFixed(1),
+      topAgents,
+      roleCounts: roleCount,
+      primaryRole,
+    };
+
+    console.log(`✅ Player stats computed for ${name}#${tag}`);
+    res.json({ status: 'success', stats });
+  } catch (error) {
+    console.error('❌ Error computing player stats:', error);
+    res.status(500).json({ status: 'error', stats: null, message: error.message });
+  }
+});
+
+// ── GET /leaderboard  ────────────────────────────────────────────────────────
+router.get('/leaderboard', async (req, res) => {
+  try {
+    const PLAYERS_LIST = [
+      { name: "Edwin灵DVS", tag: "COL", region: "latam" },
+      { name: "Pinunaaa",   tag: "Pau",   region: "latam" },
+      { name: "ShereKhan",  tag: "neko",  region: "latam" },
+      { name: "navidarx",   tag: "LAN",   region: "latam" },
+      { name: "Lurasaga",   tag: "peru",  region: "latam" },
+      { name: "21savage",   tag: "2908",  region: "latam" },
+      { name: "COL Barrilete", tag: "COL", region: "latam" },
+      { name: "Karito",     tag: "1610",  region: "latam" },
+      { name: "Santi Arias",tag: "004",   region: "latam" },
+      { name: "Parca",      tag: "ARQ22", region: "latam" },
+      { name: "COL EL Diablo", tag: "CLDAS", region: "latam" },
+      { name: "VeIox",      tag: "Rolo",  region: "latam" },
+    ];
+
+    const results = await Promise.all(PLAYERS_LIST.map(async (p) => {
+      try {
+        const r = await fetch(
+          `https://api.henrikdev.xyz/valorant/v1/mmr-history/${p.region}/${encodeURIComponent(p.name)}/${encodeURIComponent(p.tag)}`,
+          { headers: { Authorization: API_KEY, Accept: '*/*' } }
+        );
+        const d = await r.json();
+        const latest = d?.data?.[0];
+        return { ...p, elo: latest?.elo ?? 0, rank: latest?.currenttierpatched ?? 'Unranked', rankImage: latest?.images?.large ?? '' };
+      } catch { return { ...p, elo: 0, rank: 'Unranked', rankImage: '' }; }
+    }));
+
+    results.sort((a, b) => b.elo - a.elo);
+    res.json({ status: 'success', players: results });
+  } catch (error) {
+    res.status(500).json({ status: 'error', players: [], message: error.message });
+  }
+});
+
 module.exports = router;

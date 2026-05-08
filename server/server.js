@@ -6,7 +6,8 @@ const app = express();
 
 const PORT = process.env.PORT || 3001;
 
-require('dotenv').config();
+// Load .env from the server/ directory (API_KEY lives there)
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 console.log('🚀 Iniciando servidor...');
 console.log('📍 Puerto:', PORT);
@@ -14,12 +15,15 @@ console.log('🌍 Entorno:', process.env.NODE_ENV || 'development');
 
 // Middleware CORS
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3001', 
-    'https://spectrum.up.railway.app',
-    /https:\/\/.*\.railway\.app$/
-  ],
+  origin: (origin, callback) => {
+    // Allow same-origin / tools with no origin header (Postman, curl, etc.)
+    if (!origin) return callback(null, true);
+    // Allow any localhost port (Vite can pick 5173, 5174, 5175…)
+    if (/^http:\/\/localhost(:\d+)?$/.test(origin)) return callback(null, true);
+    // Allow Railway production domains
+    if (/https:\/\/.*\.railway\.app$/.test(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin "${origin}" not allowed`));
+  },
   credentials: true
 }));
 

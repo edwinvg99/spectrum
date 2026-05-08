@@ -2,81 +2,210 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ══════════════════════════════════════
+   BASE RESET
+══════════════════════════════════════ */
 html, body {
   width: 100%;
   height: 100%;
-  overflow-x: hidden; 
+  overflow-x: hidden;
+  background-color: #040b14;
+  color: #e2e8f0;
 }
 
-.main-content-wrapper {
-  padding-top: 80px;
+/* ══════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════ */
+.main-content-wrapper,
+.content-area {
+  padding-top: 64px;
 }
 
-.content-area { 
-  padding-top: 80px; 
-}
-.contenedor-elo{
-  margin-top: -60px;
-}
-.sombra-elo{
-  text-shadow:  1px 1px  30px #00d9ff;
+/* ══════════════════════════════════════
+   SCROLLBAR
+══════════════════════════════════════ */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: #0a1628; }
+::-webkit-scrollbar-thumb  { background: #1e3a5f; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #00f7ff40; }
 
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+
+/* ══════════════════════════════════════
+   PAGE PATTERN  (subtle grid)
+══════════════════════════════════════ */
+.page-pattern {
+  background-image:
+    linear-gradient(rgba(0,247,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,247,255,0.02) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
-.nombre-mapa {
-  text-shadow:  0 0 10px rgb(0, 0, 0)
+/* ══════════════════════════════════════
+   KEYFRAMES
+══════════════════════════════════════ */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.texto-integrantes{
-    font-size: clamp(1rem, 4vw, 2rem);
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(0,247,255,0.2); }
+  50%       { box-shadow: 0 0 30px rgba(0,247,255,0.7), 0 0 60px rgba(0,247,255,0.3); }
+}
+
+@keyframes glow-text {
+  0%, 100% { text-shadow: 0 0 10px rgba(0,247,255,0.5); }
+  50%       { text-shadow: 0 0 30px rgba(0,247,255,1), 0 0 60px rgba(0,247,255,0.5); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px);  }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes champion-pop {
+  0%   { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+  60%  { transform: scale(1.15) rotate(3deg);  opacity: 1; }
+  80%  { transform: scale(0.95) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg);     opacity: 1; }
+}
+
+@keyframes particle-burst {
+  0%   { transform: translate(0,0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+
+@keyframes progress-fill {
+  from { width: 0%; }
+  to   { width: var(--target-width); }
+}
+
+@keyframes number-count {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes border-flow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* ══════════════════════════════════════
+   UTILITY ANIMATION CLASSES
+══════════════════════════════════════ */
+.animate-fade-in-up   { animation: fade-in-up   0.6s ease-out both; }
+.animate-fade-in      { animation: fade-in      0.4s ease-out both; }
+.animate-scale-in     { animation: scale-in     0.4s ease-out both; }
+.animate-float        { animation: float        3s ease-in-out infinite; }
+.animate-glow-pulse   { animation: glow-pulse   2s ease-in-out infinite; }
+.animate-glow-text    { animation: glow-text    2s ease-in-out infinite; }
+.animate-shimmer      { animation: shimmer      2.5s linear infinite; }
+.animate-spin-slow    { animation: spin-slow    10s linear infinite; }
+.animate-champion-pop { animation: champion-pop 0.7s cubic-bezier(.34,1.56,.64,1) both; }
+
+/* ══════════════════════════════════════
+   SPECTRUM TEXT EFFECTS
+══════════════════════════════════════ */
+.text-glow-cyan   { text-shadow: 0 0 10px #00f7ff, 0 0 30px #00f7ff80; }
+.text-glow-gold   { text-shadow: 0 0 10px #FFD700, 0 0 30px #FFD70080; }
+.text-glow-purple { text-shadow: 0 0 10px #a855f7, 0 0 30px #a855f780; }
+
+/* ══════════════════════════════════════
+   SHIMMER CARD EFFECT
+══════════════════════════════════════ */
+.shimmer-card {
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255,255,255,0.05) 50%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ══════════════════════════════════════
+   GLOWING BORDER
+══════════════════════════════════════ */
+.border-glow-cyan {
+  box-shadow: 0 0 0 1px rgba(0,247,255,0.3), 0 0 20px rgba(0,247,255,0.1);
+}
+.border-glow-gold {
+  box-shadow: 0 0 0 1px rgba(255,215,0,0.3), 0 0 20px rgba(255,215,0,0.1);
+}
+
+/* ══════════════════════════════════════
+   PROGRESS BAR BASE
+══════════════════════════════════════ */
+.progress-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  animation: progress-fill 1.2s cubic-bezier(.22,1,.36,1) both;
+  background: linear-gradient(90deg, #00f7ff, #3b82f6);
+}
+
+/* ══════════════════════════════════════
+   CHAMPION CONFETTI PARTICLE
+══════════════════════════════════════ */
+.particle {
+  position: absolute;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  animation: particle-burst 0.8s ease-out both;
+}
+
+/* ══════════════════════════════════════
+   LEGACY COMPAT
+══════════════════════════════════════ */
+.contenedor-elo { margin-top: -60px; }
+.sombra-elo     { text-shadow: 1px 1px 30px #00d9ff; }
+.nombre-mapa    { text-shadow: 0 0 10px rgba(0,0,0,1); }
+.texto-integrantes {
+  font-size: clamp(1rem, 4vw, 2rem);
   font-weight: bold;
   font-family: "Courier New", monospace;
-  color: #ffffff;
-  text-shadow: 
-    0 0 10px #00f7ff,
-    0 0 20px #00f7ff,
-    0 0 40px #00f7ff;
+  color: #fff;
+  text-shadow: 0 0 10px #00f7ff, 0 0 20px #00f7ff, 0 0 40px #00f7ff;
   letter-spacing: 0.1em;
   margin-bottom: -10px;
-}
-
-/* styles.css o index.css */
-.custom-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-.custom-scroll::-webkit-scrollbar-thumb {
-  background-color: #888;
-  border-radius: 3px;
-}
-.custom-scroll::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
-/* Agregar al archivo CSS principal o en el componente */
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pulse-width {
-  0%, 100% {
-    width: 0%;
-  }
-  50% {
-    width: 100%;
-  }
-}
-
-.animate-fade-in-up {
-  animation: fade-in-up 0.6s ease-out;
-}
-
-.animate-pulse-width {
-  animation: pulse-width 2s ease-in-out infinite;
 }

@@ -7,7 +7,9 @@ const HeaderSection = ({
   isUpdatingCache, 
   loadingState, 
   onRefresh, 
-  onClearCache 
+  onClearCache,
+  tournamentMode,
+  onToggleTournament 
 }) => {
   return (
     <header className="relative flex flex-col items-center justify-center  text-center ">
@@ -40,6 +42,20 @@ const HeaderSection = ({
             onClearCache={onClearCache}
             hasCache={cacheStatus?.hasCache}
           />
+        </div>
+      </div>
+
+      {/* Modo Torneo / Ranking toggle */}
+      <div className="flex justify-center mt-2 mb-8">
+        <div className="flex items-center gap-2 text-xs text-slate-300 bg-slate-800/40 rounded-lg px-3 py-1.5 border border-slate-700/40">
+          <span>Modo</span>
+          <button
+            onClick={() => onToggleTournament?.()}
+            className="px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/60"
+            aria-label="Cambiar modo torneo"
+          >
+            {typeof tournamentMode === 'boolean' && tournamentMode ? 'Torneo' : 'Ranking'}
+          </button>
         </div>
       </div>
     </header>

@@ -35,8 +35,27 @@ export default defineConfig({
     sourcemap: false,
     minify: "esbuild",
     cssMinify: "esbuild",
-    // ✅ Asegurar que los assets públicos se copien correctamente
     copyPublicDir: true,
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Heavy vendor libs in separate chunks → better caching
+          "vendor-react":   ["react", "react-dom", "react-router-dom"],
+          "vendor-anime":   ["animejs"],
+          "vendor-recharts": ["recharts"],
+          // Feature-level splits
+          "chunk-arsenal":  [
+            "./src/ValorantData/arsenal/components/arsenalValorant.jsx",
+            "./src/ValorantData/arsenal/components/WeaponCard.jsx",
+            "./src/ValorantData/arsenal/components/WeaponDetail.jsx",
+          ],
+          "chunk-tienda": ["./src/ValorantData/tienda/tienda.Valorant.jsx"],
+          "chunk-torneos": ["./src/torneos/TournamentPage.jsx"],
+          "chunk-profile": ["./src/integrantes/components/PlayerProfilePage.jsx"],
+        },
+      },
+    },
   },
   // ✅ Configuración explícita para archivos públicos
   publicDir: 'public',

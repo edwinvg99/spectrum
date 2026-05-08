@@ -1,224 +1,171 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
+import anime from "animejs";
 import SpectrumLogo from "../assets/images/spectrumLOGO.svg?react";
 
+const NAV_LINKS = [
+  { to: "/",          label: "Inicio"    },
+  { to: "/jugadas",   label: "Jugadas"   },
+  { to: "/mapas",     label: "Mapas"     },
+  { to: "/tienda",    label: "Tienda"    },
+  { to: "/valorant",  label: "Noticias"  },
+  { to: "/agentes",   label: "Agentes"   },
+  { to: "/arsenal",   label: "Arsenal"   },
+  { to: "/torneos",     label: "Torneos"    },
+  { to: "/accesorios", label: "Accesorios" },
+];
+
 function Navbar() {
-  const location = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location           = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const navRef             = useRef(null);
+  const linksRef           = useRef(null);
+  const mounted            = useRef(false);
 
-  const baseLinkClasses = `
-    text-white font-bold tracking-wider transition-all duration-300 ease-in-out
-    hover:text-sky-400 hover:scale-105 hover:drop-shadow-lg
-    text-lg sm:text-xl md:text-xl lg:text-2xl xl:text-2xl
-  `;
+  /* ── entrance animation on first mount ── */
+  useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
 
-  const activeLinkClasses =
-    "font-extrabold text-sky-400 border-b-2 border-sky-400";
+    anime({
+      targets: navRef.current,
+      translateY: [-64, 0],
+      opacity:    [0, 1],
+      duration:   700,
+      easing:     "easeOutExpo",
+    });
 
-  const getLinkClass = (path) => {
-    return `${baseLinkClasses} ${
-      location.pathname === path ? activeLinkClasses : ""
-    }`;
-  };
+    anime({
+      targets: linksRef.current?.querySelectorAll("a, button"),
+      translateY: [-12, 0],
+      opacity:    [0, 1],
+      duration:   500,
+      delay:      anime.stagger(60, { start: 300 }),
+      easing:     "easeOutExpo",
+    });
+  }, []);
+
+  /* ── active indicator ── */
+  const isActive = (path) =>
+    path === "/"
+      ? location.pathname === "/"
+      : location.pathname.startsWith(path);
+
+  const linkCls = (path) =>
+    `relative text-sm font-semibold tracking-wider transition-all duration-200 px-2 py-1
+     ${isActive(path)
+       ? "text-spectrum-cyan"
+       : "text-slate-300 hover:text-white"}`;
 
   return (
-    <nav className="bg-gradient-to-r from-black via-slate-900 to-black shadow-2xl fixed w-full top-0 z-50 border-b border-slate-700/50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo - Lado izquierdo con Spectrum SVG */}
+    <nav
+      ref={navRef}
+      className="fixed w-full top-0 z-50 bg-spectrum-darker/90 backdrop-blur-md border-b border-slate-700/40 shadow-lg"
+      style={{ opacity: 0 }}
+    >
+      {/* subtle top glow line */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-spectrum-cyan/60 to-transparent" />
+
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div ref={linksRef} className="flex items-center justify-between h-16 gap-4">
+
+          {/* ── Logo ── */}
           <Link
             to="/"
-            className="flex items-center space-x-3 transition-all duration-300 ease-in-out hover:scale-105 group"
+            className="flex items-center gap-2.5 flex-shrink-0 group"
           >
             <div className="relative">
-              {/* Glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-
-              {/* Logo SVG */}
-              <div className="relative">
-                <SpectrumLogo
-                  className="h-8 w-8 object-contain transition-transform duration-300 group-hover:scale-110"
-                  fill="url(#navSpectrumGradient)"
-                  stroke="rgba(132, 215, 203, 0.8)"
-                  strokeWidth="1"
-                />
-              </div>
-
-              {/* SVG Gradient para el navbar */}
+              <div className="absolute inset-0 bg-spectrum-cyan/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <SpectrumLogo
+                className="h-7 w-7 relative transition-transform duration-300 group-hover:scale-110 group-hover:drop-shadow-cyan"
+                fill="url(#navGrad)"
+                stroke="rgba(0,247,255,0.6)"
+                strokeWidth="1"
+              />
               <svg width="0" height="0" className="absolute">
                 <defs>
-                  <linearGradient
-                    id="navSpectrumGradient"
-                    x1="0%"
-                    y1="0%"
-                    x2="100%"
-                    y2="100%"
-                  >
-                    <stop offset="0%" stopColor="#84d7cb" />
-                    <stop offset="50%" stopColor="#a855f7" />
+                  <linearGradient id="navGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%"   stopColor="#00f7ff" />
+                    <stop offset="50%"  stopColor="#a855f7" />
                     <stop offset="100%" stopColor="#3b82f6" />
                   </linearGradient>
                 </defs>
               </svg>
             </div>
-
-     
+            <span className="text-white font-display font-bold text-lg tracking-widest hidden sm:block
+                             group-hover:text-spectrum-cyan transition-colors duration-200">
+              SPECTRUM
+            </span>
           </Link>
 
-          {/* Menú Desktop - Centro */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-8">
-              <Link
-                to="/"
-                className={`${getLinkClass("/")} px-3 py-2 rounded-md`}
-              >
-                Home
+          {/* ── Desktop links ── */}
+          <div className="hidden md:flex items-center gap-0.5 lg:gap-1">
+            {NAV_LINKS.map(({ to, label }) => (
+              <Link key={to} to={to} className={linkCls(to)}>
+                {label}
+                {isActive(to) && (
+                  <span className="absolute bottom-0 inset-x-0 h-0.5 bg-spectrum-cyan rounded-full
+                                   animate-fade-in" />
+                )}
               </Link>
-              <Link
-                to="/jugadas"
-                className={`${getLinkClass("/jugadas")} px-3 py-2 rounded-md`}
-              >
-                Jugadas
-              </Link>
-              <Link
-                to="/mapas"
-                className={`${getLinkClass("/mapas")} px-3 py-2 rounded-md`}
-              >
-                Mapas
-              </Link>
-              <Link
-                to="/tienda"
-                className={`${getLinkClass("/tienda")} px-3 py-2 rounded-md`}
-              >
-                Tienda
-              </Link>
-              <Link
-                to="/valorant"
-                className={`${getLinkClass("/valorant")} px-3 py-2 rounded-md`}
-              >
-                Noticias
-              </Link>
-              <Link
-                to="/agentes"
-                className={`${getLinkClass("/agentes")} px-3 py-2 rounded-md`}
-              >
-                Agentes
-              </Link>
-            </div>
+            ))}
           </div>
 
-          {/* Botón CTA Desktop - Lado derecho */}
-          <div className="hidden md:block">
+          {/* ── CTA button ── */}
+          <div className="hidden md:block flex-shrink-0">
             <Link
               to="/integrantes"
-              className="bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-700 hover:to-sky-800 
-                         text-white font-semibold px-6 py-2 rounded-lg transition-all duration-300 
-                         hover:scale-105 hover:shadow-lg border border-sky-500/50"
+              className="relative inline-flex items-center gap-2 px-5 py-2 rounded-lg font-bold text-sm
+                         tracking-wider transition-all duration-300 overflow-hidden group
+                         bg-transparent border border-spectrum-cyan/50 text-spectrum-cyan
+                         hover:bg-spectrum-cyan hover:text-spectrum-darker hover:border-spectrum-cyan
+                         hover:shadow-cyan hover:scale-105"
             >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
               Integrantes
             </Link>
           </div>
 
-          {/* Botón menú móvil */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="bg-slate-800 inline-flex items-center justify-center p-2 rounded-md 
-                         text-slate-300 hover:text-white hover:bg-slate-700 
-                         focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-500
-                         transition-all duration-200"
-              aria-expanded="false"
-            >
-              <span className="sr-only">Abrir menú principal</span>
-              {!isMobileMenuOpen ? (
-                <svg
-                  className="block h-6 w-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  className="block h-6 w-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              )}
-            </button>
-          </div>
+          {/* ── Mobile menu button ── */}
+          <button
+            onClick={() => setMenuOpen(o => !o)}
+            className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {menuOpen
+                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />}
+            </svg>
+          </button>
         </div>
       </div>
 
-      {/* Menú Móvil */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link
-              to="/"
-              className={`${getLinkClass("/")}
-              block px-3 py-2 rounded-md`}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Home
-            </Link>
-            <Link
-              to="/jugadas"
-              className={`${getLinkClass("/jugadas")} block px-3 py-2 rounded-md`}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Jugadas
-            </Link>
-            <Link
-              to="/mapas"
-              className={`${getLinkClass("/mapas")} block px-3 py-2 rounded-md`}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Mapas
-            </Link>
-            <Link
-              to="/tienda"
-              className={`${getLinkClass("/tienda")} block px-3 py-2 rounded-md`}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Tienda
-            </Link>
-            <Link
-              to="/valorant"
-              className={`${getLinkClass("/valorant")} block px-3 py-2 rounded-md`}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Noticias
-            </Link>
-            <Link
-              to="/agentes"
-              className={`${getLinkClass("/agentes")} block px-3 py-2 rounded-md`}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Agentes
-            </Link>
+      {/* ── Mobile menu ── */}
+      {menuOpen && (
+        <div className="md:hidden bg-spectrum-darker/98 border-t border-slate-700/40 backdrop-blur-md animate-fade-in">
+          <div className="px-4 py-4 space-y-1">
+            {NAV_LINKS.map(({ to, label }) => (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => setMenuOpen(false)}
+                className={`block px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200
+                  ${isActive(to)
+                    ? "bg-spectrum-cyan/10 text-spectrum-cyan border border-spectrum-cyan/20"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white"}`}
+              >
+                {label}
+              </Link>
+            ))}
             <Link
               to="/integrantes"
-              className="bg-gradient-to-r from-sky-600 to-sky-700 text-white font-semibold 
-                         block px-3 py-2 rounded-md mt-4 text-center
-                         hover:from-sky-700 hover:to-sky-800 transition-all duration-300"
-              onClick={() => setIsMobileMenuOpen(false)}
+              onClick={() => setMenuOpen(false)}
+              className="block mt-3 px-4 py-2.5 rounded-lg text-sm font-bold text-center
+                         bg-spectrum-cyan/10 border border-spectrum-cyan/40 text-spectrum-cyan
+                         hover:bg-spectrum-cyan hover:text-spectrum-darker transition-all duration-200"
             >
               Integrantes
             </Link>

@@ -1,320 +1,353 @@
-// tienda.Valorant.jsx - Importar y usar el nuevo loading
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import anime from 'animejs';
 import { StoreLoadingSkeleton } from '../../sharred/loadingSkeletons';
 
-// Componente para el estado de error
-const ErrorState = ({ error }) => (
-  <div className="flex justify-center items-center min-h-screen bg-slate-950">
-    <div className="text-center text-red-400">
-      <p className="text-2xl mb-6">❌ Error al cargar los packs</p>
-      <p className="text-xl">{error}</p>
-    </div>
-  </div>
-);
+/* ══ helpers ══ */
+const formatTime = (seconds) => {
+  if (isNaN(seconds) || seconds < 0) return "-- : -- : --";
+  const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+  const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+  const s = String(Math.floor(seconds % 60)).padStart(2, '0');
+  return `${h}:${m}:${s}`;
+};
 
-// Componente para el estado vacío
-const EmptyState = () => (
-  <div className="text-center">
-    <div className="bg-slate-800/60 backdrop-blur-md border border-slate-700/50 rounded-3xl p-16">
-      <div className="text-8xl mb-6">🛍️</div>
-      <p className="text-3xl text-slate-400 mb-4">No se encontraron packs destacados</p>
-      <p className="text-xl text-slate-500">La tienda puede estar temporalmente vacía o aún no hay packs disponibles.</p>
-    </div>
-  </div>
-);
+const adaptBundle = (bundle) => {
+  let name  = 'Pack Desconocido';
+  let image = '';
+  let desc  = bundle.description || '';
+  if (bundle.items?.length) {
+    const main = bundle.items.reduce((prev, cur) => {
+      if (cur.promo_item) return cur;
+      return (prev.base_price || 0) > (cur.base_price || 0) ? prev : cur;
+    }, bundle.items[0]);
+    if (main) {
+      name  = main.displayName || main.name || name;
+      image = main.displayIcon || main.image || '';
+      if (!desc && main.description) desc = main.description;
+    }
+  }
+  return { ...bundle, name, image, description: desc };
+};
 
-// Componente para mostrar detalles del item seleccionado
-const SelectedItemDetails = ({ item, onClose }) => (
-  <div className="relative bg-slate-900/80 p-6 rounded-2xl border border-blue-600/50 mb-6">
-    <div className="flex flex-col lg:flex-row items-center gap-6">
-      {/* Imagen del item */}
-      <div className="flex-shrink-0 w-32 h-32 lg:w-40 lg:h-40 bg-slate-800 rounded-xl flex items-center justify-center p-4 border border-slate-700">
-        <img 
-          src={item.displayIcon || item.image || 'https://via.placeholder.com/128x128/1e293b/ffffff?text=ITEM'} 
-          alt={item.displayName || item.name || 'Item'} 
-          className="w-full h-full object-contain" 
-          onError={(e) => {
-            e.target.src = 'https://via.placeholder.com/128x128/1e293b/ffffff?text=ITEM';
-          }}
+/* ══ Timer widget ══ */
+function TimerBadge({ seconds }) {
+  if (!seconds || isNaN(seconds)) return null;
+  return (
+    <div className="flex items-center gap-2 text-xs font-mono">
+      <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+      <span className="text-slate-400">Expira en</span>
+      <span className="text-red-400 font-bold">{formatTime(seconds)}</span>
+    </div>
+  );
+}
+
+/* ══ Bundle item card ══ */
+function ItemCard({ item, isSelected, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`group relative bg-slate-900/60 rounded-2xl p-4 text-center border
+                  transition-all duration-300 hover:scale-105 focus:outline-none
+                  ${isSelected
+                    ? 'border-spectrum-cyan/60 ring-2 ring-spectrum-cyan/30 shadow-cyan bg-spectrum-cyan/5'
+                    : 'border-slate-700/30 hover:border-spectrum-cyan/30 hover:bg-slate-800/60'}`}
+    >
+      {/* glow */}
+      {isSelected && (
+        <div className="absolute inset-0 bg-spectrum-cyan/5 rounded-2xl pointer-events-none" />
+      )}
+
+      <div className="h-20 flex items-center justify-center mb-3">
+        <img
+          src={item.displayIcon || item.image || ''}
+          alt={item.displayName || item.name || 'Item'}
+          className="max-h-16 w-auto object-contain transition-transform duration-300 group-hover:scale-110"
+          onError={(e) => { e.target.style.display = 'none'; }}
         />
       </div>
-      
-      {/* Información del item */}
-      <div className="flex-grow text-center lg:text-left">
-        <h4 className="text-2xl lg:text-3xl font-bold text-white mb-3">
-          {item.displayName || item.name || 'Detalles del Item'}
-        </h4>
-        {item.type && (
-          <p className="text-blue-400 text-lg mb-3">
-            Tipo: {item.type.replace(/_/g, ' ')}
-          </p>
-        )}
-        <div className="space-y-2">
-          {item.base_price !== undefined && (
-            <p className="text-slate-300 text-xl">
-              Precio Base: <span className="font-semibold text-white">{item.base_price} VP</span>
+
+      <p className="text-white text-xs font-semibold line-clamp-2 mb-1">
+        {item.displayName || item.name || 'Item'}
+      </p>
+
+      {item.type && (
+        <p className="text-slate-500 text-[10px]">{item.type.replace(/_/g, ' ')}</p>
+      )}
+
+      {item.base_price !== undefined && (
+        <p className="text-yellow-400 text-xs font-bold mt-2">
+          {item.base_price} <span className="text-yellow-600 font-normal">VP</span>
+        </p>
+      )}
+    </button>
+  );
+}
+
+/* ══ Selected item detail ══ */
+function SelectedDetail({ item, onClose }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    anime({ targets: ref.current, translateY: [-16, 0], opacity: [0, 1], duration: 400, easing: 'easeOutExpo' });
+  }, [item]);
+
+  return (
+    <div ref={ref} className="relative bg-gradient-to-br from-slate-800/80 to-slate-900/80
+                               border border-spectrum-cyan/30 rounded-2xl p-6 mb-6
+                               shadow-[0_0_40px_rgba(0,247,255,0.08)]">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-spectrum-cyan/50 to-transparent rounded-t-2xl" />
+
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-500 hover:text-white
+                   hover:bg-slate-700/50 transition-colors"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <div className="flex items-center gap-6">
+        <div className="w-28 h-28 bg-slate-800 rounded-xl flex items-center justify-center p-3
+                        border border-slate-700/40 flex-shrink-0">
+          <img
+            src={item.displayIcon || item.image || ''}
+            alt={item.displayName || ''}
+            className="w-full h-full object-contain"
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+        </div>
+        <div>
+          <h4 className="text-xl font-bold text-white mb-1">
+            {item.displayName || item.name || 'Item'}
+          </h4>
+          {item.type && (
+            <p className="text-spectrum-cyan text-xs uppercase tracking-widest mb-3">
+              {item.type.replace(/_/g, ' ')}
             </p>
           )}
-          {item.discounted_price !== undefined && item.discounted_price < item.base_price && (
-            <p className="text-emerald-400 text-xl">
-              Precio con descuento: <span className="font-semibold">{item.discounted_price} VP</span>
-            </p>
-          )}
+          <div className="flex items-center gap-4">
+            {item.base_price !== undefined && (
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Precio</span>
+                <p className="text-yellow-400 text-xl font-black">
+                  {item.base_price} <span className="text-yellow-600 text-sm font-normal">VP</span>
+                </p>
+              </div>
+            )}
+            {item.discounted_price !== undefined && item.discounted_price < item.base_price && (
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Descuento</span>
+                <p className="text-green-400 text-xl font-black">
+                  {item.discounted_price} <span className="text-green-600 text-sm font-normal">VP</span>
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
-    
-    {/* Botón cerrar */}
-    <button 
-      onClick={onClose}
-      className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors text-3xl w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-700/50"
-      aria-label="Cerrar detalles del item"
+  );
+}
+
+/* ══ Bundle card ══ */
+function BundleCard({ bundle, index }) {
+  const [selectedItem, setSelectedItem] = useState(null);
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    if (!cardRef.current) return;
+    anime({
+      targets:    cardRef.current,
+      translateY: [40, 0],
+      opacity:    [0, 1],
+      duration:   700,
+      delay:      index * 200,
+      easing:     'easeOutExpo',
+    });
+  }, []);
+
+  return (
+    <div
+      ref={cardRef}
+      className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/30 rounded-3xl
+                 overflow-hidden shadow-2xl"
+      style={{ opacity: 0 }}
     >
-      &times;
-    </button>
-  </div>
-);
+      {/* Banner / header */}
+      <div className="relative px-8 pt-8 pb-6 bg-gradient-to-br from-slate-800 to-slate-900">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
 
-// Componente para mostrar un item individual del bundle
-const BundleItem = ({ item, itemIndex, isSelected, onClick }) => (
-  <div 
-    className={`bg-slate-900/70 rounded-xl p-4 text-center border cursor-pointer 
-    ${isSelected ? 'border-blue-500 ring-2 ring-blue-500 scale-105 shadow-lg shadow-blue-500/25' : 'border-slate-600/30'} 
-    hover:border-blue-500/50 hover:scale-105 transition-all duration-300 min-h-[120px] flex flex-col justify-between`}
-    onClick={onClick}
-  >
-    {/* Imagen del item */}
-    <div className="mb-3">
-      <img 
-        src={item.displayIcon || item.image || 'https://via.placeholder.com/80x80/1e293b/ffffff?text=ITEM'} 
-        alt={item.displayName || item.name || 'Item'} 
-        className="w-16 h-16 lg:w-20 lg:h-20 object-contain mx-auto"
-        onError={(e) => {
-          e.target.src = 'https://via.placeholder.com/80x80/1e293b/ffffff?text=ITEM';
-        }}
-      />
-    </div>
-    
-    {/* Información del item */}
-    <div>
-      <p className="text-white text-sm lg:text-base font-medium mb-1 line-clamp-2">
-        {item.displayName || item.name || 'Item Skin'}
-      </p>
-      {item.type && (
-        <p className="text-slate-400 text-xs lg:text-sm opacity-80">
-          {item.type.replace(/_/g, ' ')}
-        </p>
-      )}
-    </div>
-  </div>
-);
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-black text-spectrum-purple/80 uppercase tracking-[0.35em] mb-2">
+              Pack Destacado
+            </p>
+            <h2 className="text-2xl lg:text-3xl font-display font-black text-white">
+              {bundle.name}
+            </h2>
+            {bundle.description && (
+              <p className="text-slate-400 text-sm mt-2 max-w-lg">{bundle.description}</p>
+            )}
+          </div>
 
-// Componente para la información de precio del bundle
-const BundlePricing = ({ bundlePrice }) => (
-  <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 p-2 rounded-2xl border border-purple-500/30 mb-6">
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-      <h4 className="text-2xl lg:text-2xl font-bold text-[#84d7cb] flex items-center gap-3">
-        <span className="text-3xl">💰</span>
-        Precio del Pack
-      </h4>
-      <span className="text-3xl lg:text-2xl font-black text-[#84d7cb] bg-slate-900/50 px-6 py-3 rounded-xl">
-        {bundlePrice ? `${bundlePrice} VP` : 'N/A'}
-      </span>
-    </div>
-  </div>
-);
-
-// Componente para la información de tiempo restante
-const BundleTimer = ({ secondsRemaining, formatTime }) => (
-  secondsRemaining !== undefined && (
-    <div className="flex flex-col sm:flex-row items-center justify-start  mt-4">
-        <span className="text-xl lg:text-2xl text-slate-200 font-semibold flex items-center gap-3">
-          Tiempo restante:
-        </span>
-        <span className="text-2xl lg:text-2xl text-red-500 font-black animate-pulse  px-6 py-3 rounded-xl">
-          {formatTime(secondsRemaining)}
-        </span>
-    </div>
-  )
-);
-
-// Componente principal para mostrar un bundle individual
-const BundleCard = ({ bundle, selectedPackItem, onItemClick, onItemDeselect, formatTime }) => (
-  <div className="bg-slate-800/70 backdrop-blur-md border border-slate-700/50 rounded-3xl p-5 lg:p-12 shadow-2xl shadow-purple-500/10">
-    <div className="max-w-6xl mx-auto">
-        
-        
-        
-      {/* Título del pack */}
-      <div className="text-center mb-8">
-        <h2 className="text-2xl lg:text-4xl xl:text-5xl font-black mb-4 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-          Pack Destacado de la Tienda
-        </h2>
-        {bundle.description && (
-          <p className="text-xl lg:text-2xl text-slate-300 max-w-4xl mx-auto">{bundle.description}</p>
-        )}
+          {/* Price + timer */}
+          <div className="flex-shrink-0 text-right">
+            {bundle.bundle_price && (
+              <div className="bg-slate-900/60 border border-yellow-500/30 rounded-2xl px-6 py-3
+                              shadow-gold">
+                <p className="text-[10px] text-yellow-600 uppercase tracking-wider mb-1">Precio total</p>
+                <p className="text-3xl font-black text-yellow-400 tabular-nums">
+                  {bundle.bundle_price.toLocaleString()}
+                  <span className="text-lg font-semibold text-yellow-600 ml-1">VP</span>
+                </p>
+              </div>
+            )}
+            <div className="mt-2">
+              <TimerBadge seconds={bundle.seconds_remaining} />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Detalles del item seleccionado */}
-      {selectedPackItem && (
-        <SelectedItemDetails 
-          item={selectedPackItem} 
-          onClose={onItemDeselect} 
-        />
-      )}
+      {/* Items */}
+      <div className="p-8">
+        {selectedItem && (
+          <SelectedDetail item={selectedItem} onClose={() => setSelectedItem(null)} />
+        )}
 
-      {/* Precio del pack */}
-      <BundlePricing bundlePrice={bundle.bundle_price} />
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-sm font-bold text-white">
+            Items Incluidos
+            <span className="ml-2 text-xs text-slate-500 font-normal">({bundle.items?.length || 0})</span>
+          </h3>
+          {selectedItem && (
+            <button onClick={() => setSelectedItem(null)} className="text-xs text-slate-500 hover:text-white transition-colors">
+              Deseleccionar
+            </button>
+          )}
+        </div>
 
-      {/* Grid de items del bundle */}
-      <div className="bg-slate-900/50 p-3 lg:p-8 rounded-2xl border border-slate-700">
-        <h3 className="text-2xl lg:text-3xl font-bold text-white mb-6 text-center">
-          Items Incluidos ({bundle.items?.length || 0})
-        </h3>
-        
-        {bundle.items && bundle.items.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 lg:gap-6">
-            {bundle.items.map((item, itemIndex) => (
-              <BundleItem
-                key={item.uuid || itemIndex}
-                item={item}
-                itemIndex={itemIndex}
-                isSelected={selectedPackItem?.uuid === item.uuid}
-                onClick={() => onItemClick(item)}
-              />
+        {bundle.items?.length ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            {bundle.items.map((item, i) => (
+              <div
+                key={item.uuid || i}
+                className="animate-fade-in-up"
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
+                <ItemCard
+                  item={item}
+                  isSelected={selectedItem?.uuid === item.uuid}
+                  onClick={() => setSelectedItem(selectedItem?.uuid === item.uuid ? null : item)}
+                />
+              </div>
             ))}
           </div>
         ) : (
-          <div className="bg-slate-800/50 p-8 rounded-2xl text-center">
-            <p className="text-xl text-slate-400">No se encontraron items para este pack.</p>
+          <div className="bg-slate-800/40 rounded-xl p-8 text-center">
+            <p className="text-slate-500 text-sm">No se encontraron items para este pack.</p>
           </div>
         )}
-
-        {/* Timer del bundle */}
-        <BundleTimer 
-          secondsRemaining={bundle.seconds_remaining} 
-          formatTime={formatTime} 
-        />
       </div>
     </div>
+  );
+}
+
+/* ══ Empty state ══ */
+const EmptyState = () => (
+  <div className="text-center py-24">
+    <div className="text-8xl mb-6">🛍️</div>
+    <h3 className="text-2xl font-bold text-slate-400 mb-2">Tienda vacía</h3>
+    <p className="text-slate-600">La tienda no tiene packs destacados en este momento.</p>
   </div>
 );
 
-// Componente principal
+/* ══ Main component ══ */
 function ValorantStore() {
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedPackItem, setSelectedPackItem] = useState(null);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState(null);
+  const headerRef = useRef(null);
 
-  // Función para formatear tiempo
-  const formatTime = (seconds) => {
-    if (isNaN(seconds) || seconds < 0) return "Tiempo no disponible";
-    const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
-    const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
-    const s = String(Math.floor(seconds % 60)).padStart(2, '0');
-    return `${h}:${m}:${s}`;
-  };
-
-  // Función para adaptar datos de bundles
-  const adaptBundleData = (bundle) => {
-    let bundleName = 'Pack Desconocido';
-    let bundleImage = 'https://via.placeholder.com/1200x675/1e293b/ffffff?text=PACK+COMPLETO';
-    let bundleDescription = bundle.description || '';
-
-    if (bundle.items && bundle.items.length > 0) {
-      const mainItem = bundle.items.reduce((prev, current) => {
-        if (current.promo_item) return current;
-        return (prev.base_price || 0) > (current.base_price || 0) ? prev : current;
-      }, bundle.items[0]);
-
-      if (mainItem) {
-        bundleName = mainItem.displayName || mainItem.name || `Pack ${bundle.bundle_uuid.slice(0, 4)}`;
-        bundleImage = mainItem.displayIcon || mainItem.image || bundleImage;
-        if (!bundleDescription && mainItem.description) {
-          bundleDescription = mainItem.description;
-        }
-      }
-    }
-
-    return {
-      ...bundle,
-      name: bundleName,
-      image: bundleImage,
-      description: bundleDescription
-    };
-  };
-
-  // Efecto para cargar productos de la tienda
   useEffect(() => {
-    const fetchStoreProducts = async () => {
+    const fetchStore = async () => {
       try {
-        // ✅ URL adaptativa: desarrollo vs producción
-        const isDevelopment = window.location.hostname === 'localhost';
-        const baseUrl = isDevelopment 
-          ? '/api-local'  // Desarrollo: usar proxy
-          : '';           // Producción: usar mismo dominio
-        
-        const url = `${baseUrl}/api/valorant/store-products`;
-        
-        console.log(`🛍️ Fetching tienda desde: ${url}`);
-        console.log(`🌍 Entorno: ${isDevelopment ? 'Desarrollo' : 'Producción'}`);
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('📦 Datos de tienda recibidos:', data);
-        
-        if (data && data.data && data.data.length > 0) {
-          const adaptedBundles = data.data.map(adaptBundleData);
-          setProducts(adaptedBundles);
-          setSelectedPackItem(null);
-        } else {
-          setProducts([]);
-        }
-        
+        const isDev = window.location.hostname === 'localhost';
+        const url   = `${isDev ? '/api-local' : ''}/api/valorant/store-products`;
+        const res   = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data  = await res.json();
+        setProducts((data?.data || []).map(adaptBundle));
       } catch (err) {
-        console.error("❌ Error fetching store products:", err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchStoreProducts();
+    fetchStore();
   }, []);
 
-  // Handlers para la selección de items
-  const handleItemClick = (item) => {
-    setSelectedPackItem(item);
-  };
+  /* header entrance */
+  useEffect(() => {
+    if (loading || !headerRef.current) return;
+    anime({
+      targets:    headerRef.current.querySelectorAll('.store-header-part'),
+      translateY: [30, 0],
+      opacity:    [0, 1],
+      duration:   700,
+      delay:      anime.stagger(120),
+      easing:     'easeOutExpo',
+    });
+  }, [loading]);
 
-  const handleDeselectItem = () => {
-    setSelectedPackItem(null);
-  };
-
-  // Renderizado condicional basado en el estado
   if (loading) return <StoreLoadingSkeleton />;
-  if (error) return <ErrorState error={error} />;
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-spectrum-darker flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="text-6xl mb-4">❌</div>
+          <h2 className="text-xl font-bold text-red-300 mb-2">Error cargando tienda</h2>
+          <p className="text-sm text-red-400/80">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 py-24 px-4 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-spectrum-darker page-pattern pb-16">
+      {/* hero gradient */}
+      <div className="absolute inset-x-0 top-16 h-64 bg-gradient-to-b from-spectrum-purple/10 via-spectrum-blue/5 to-transparent pointer-events-none" />
+
+      <div className="relative max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
+
+        {/* Header */}
+        <div ref={headerRef} className="text-center mb-12">
+          <p className="store-header-part opacity-0 text-spectrum-cyan/60 text-[10px] font-black tracking-[0.4em] uppercase mb-3">
+            Valorant
+          </p>
+          <h1 className="store-header-part opacity-0 text-5xl font-display font-black text-white uppercase tracking-widest
+                         drop-shadow-[0_0_40px_rgba(168,85,247,0.4)]">
+            Tienda
+          </h1>
+          <p className="store-header-part opacity-0 text-slate-500 text-sm mt-2">
+            Packs destacados · Se actualiza diariamente
+          </p>
+
+          {/* decorative line */}
+          <div className="store-header-part opacity-0 flex items-center gap-4 justify-center mt-6 max-w-xs mx-auto">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent to-spectrum-purple/40" />
+            <div className="w-2 h-2 rounded-full bg-spectrum-purple/60" />
+            <div className="flex-1 h-px bg-gradient-to-l from-transparent to-spectrum-purple/40" />
+          </div>
+        </div>
+
+        {/* Bundles */}
         {products.length > 0 ? (
-          <div className="space-y-12">
-            {products.map((bundle) => (
-              <BundleCard
-                key={bundle.bundle_uuid}
-                bundle={bundle}
-                selectedPackItem={selectedPackItem}
-                onItemClick={handleItemClick}
-                onItemDeselect={handleDeselectItem}
-                formatTime={formatTime}
-              />
+          <div className="space-y-10">
+            {products.map((bundle, i) => (
+              <BundleCard key={bundle.bundle_uuid || i} bundle={bundle} index={i} />
             ))}
           </div>
         ) : (

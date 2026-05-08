@@ -1,85 +1,34 @@
 // ===============================
-// CONFIGURACIÓN DE JUGADORES
+// PLAYER CONFIGURATION
 // ===============================
 export const PLAYERS = [
-  {
-    name: "Edwin灵DVS",
-    tag: "COL",
-    region: "latam",
-  },
-  {
-    name: "Pinunaaa",
-    tag: "Pau",
-    region: "latam",
-  },
-  {
-    name: "ShereKhan",
-    tag: "neko",
-    region: "latam",
-  },
-  {
-    name: "navidarx",
-    tag: "LAN",
-    region: "latam",
-  },
-  {
-    name: "Lurasaga",
-    tag: "peru",
-    region: "latam",
-  },
-  {
-    name: "21savage",
-    tag: "2908",
-    region: "latam",
-  },
-  {
-    name: "COL Barrilete",
-    tag: "COL",
-    region: "latam",
-  },
-  {
-    name: "Karito",
-    tag: "1610",
-    region: "latam",
-  },
-  {
-    name: "Santi Arias",
-    tag: "004",
-    region: "latam",
-  },
-  {
-    name: "Parca",
-    tag: "ARQ22",
-    region: "latam",
-  },
-  {
-    name: "COL EL Diablo",
-    tag: "CLDAS",
-    region: "latam",
-  },
-  {
-    name: "VeIox",
-    tag: "Rolo",
-    region: "latam",
-  },
+  { name: "Edwin灵DVS", tag: "COL", region: "latam" },
+  { name: "Pinunaaa", tag: "Pau", region: "latam" },
+  { name: "MPX", tag: "666", region: "latam" },
+  { name: "Lurasaga", tag: "peru", region: "latam" },
+  { name: "21savage", tag: "2908", region: "latam" },
+  { name: "COL Barrilete", tag: "COL", region: "latam" },
+  { name: "stargirl", tag: "743", region: "latam" },
+  { name: "Santi Arias", tag: "004", region: "latam" },
+  { name: "Parca", tag: "ARQ22", region: "latam" },
+  { name: "COL EL Diablo", tag: "CLDAS", region: "latam" },
+  { name: "VeIox", tag: "Rolo", region: "latam" },
 ];
 
 // ================================
-// CONFIGURACIÓN DE BACKEND
+// BACKEND CONFIGURATION
 // ================================
-const isDevelopment = process.env.NODE_ENV !== "production";
-
 // In dev, use the Vite proxy path (/api-local → localhost:3001) to avoid CORS.
 // In prod, use same-origin relative paths (Express serves the React build).
 export const BACKEND_CONFIG = {
-  BASE_URL: isDevelopment ? "/api-local" : "",
+  BASE_URL: import.meta.env.DEV ? "/api-local" : "",
   API_PREFIX: "/api/valorant",
   HEALTH_ENDPOINT: "/api/health",
   TIMEOUT: 15000,
 };
 
 // ================================
-// CONFIGURACIÓN DE API EXTERNA (HENRIK DEV)
+// EXTERNAL API URLs (HENRIK DEV)
 // ================================
 export const API_URLS = {
   BASE: "https://api.henrikdev.xyz",
@@ -89,7 +38,7 @@ export const API_URLS = {
 };
 
 // ================================
-// IMÁGENES Y RECURSOS
+// DEFAULT IMAGES
 // ================================
 export const DEFAULT_IMAGES = {
   UNRANKED_ICON:
@@ -103,7 +52,7 @@ export const DEFAULT_IMAGES = {
 };
 
 // ================================
-// CONFIGURACIÓN DE REGIONES
+// REGIONS
 // ================================
 export const REGIONS = {
   LATAM: "latam",
@@ -115,7 +64,7 @@ export const REGIONS = {
 };
 
 // ================================
-// ESTADOS DE LA APLICACIÓN
+// LOADING STATES
 // ================================
 export const LOADING_STATES = {
   IDLE: "idle",
@@ -125,7 +74,7 @@ export const LOADING_STATES = {
 };
 
 // ================================
-// MENSAJES DE LA APLICACIÓN
+// APPLICATION MESSAGES
 // ================================
 export const MESSAGES = {
   LOADING: "Cargando datos de jugadores...",
@@ -137,7 +86,7 @@ export const MESSAGES = {
 };
 
 // ================================
-// CONFIGURACIÓN DE UI
+// UI CONFIGURATION
 // ================================
 export const UI_CONFIG = {
   CARD_MIN_HEIGHT: "400px",
@@ -147,17 +96,32 @@ export const UI_CONFIG = {
 };
 
 // ================================
-// CONFIGURACIÓN DE CACHÉ
+// CACHE CONFIGURATION
 // ================================
 export const CACHE_CONFIG = {
-  TTL: 5 * 60 * 1000, // 5 minutos
-  MAX_AGE: 30 * 60 * 1000, // 30 minutos máximo
-  AUTO_UPDATE_INTERVAL: 5 * 60 * 1000, // Verificar cada 5 minutos
-  VERSION: "1.3.0",   // keep in sync with src/utils/constants.js
+  // Player data (integrantes section)
+  TTL: 5 * 60 * 1000,              // 5 min - stale threshold
+  MAX_AGE: 30 * 60 * 1000,         // 30 min - purge threshold
+  AUTO_UPDATE_INTERVAL: 5 * 60 * 1000,
+
+  // Per-section TTLs (used by generic cache)
+  AGENTS_TTL: 60 * 60 * 1000,      // 1 hour  - agents rarely change
+  MAPS_TTL: 60 * 60 * 1000,        // 1 hour  - maps rarely change
+  STORE_TTL: 15 * 60 * 1000,       // 15 min  - store rotates daily
+  NEWS_TTL: 10 * 60 * 1000,        // 10 min  - news updates frequently
+  EVENTS_TTL: 15 * 60 * 1000,      // 15 min  - events update moderately
+  AGENT_COMP_TTL: 30 * 60 * 1000,  // 30 min  - legacy single-player compositions
+  META_COMP_TTL: 60 * 60 * 1000,   // 1 hour  - aggregated meta compositions
+  OFFICIAL_NEWS_TTL: 15 * 60 * 1000, // 15 min - official Riot news
+  RESULTS_TTL: 10 * 60 * 1000,     // 10 min  - esports match results
+  TEAMS_TTL: 30 * 60 * 1000,       // 30 min  - esports team data
+  WEAPONS_TTL: 60 * 60 * 1000,     // 1 hour  - weapons rarely change
+
+  VERSION: "1.3.0",   // bumped — wipes old cache entries
 };
 
 // ================================
-// UTILIDADES
+// UTILITIES
 // ================================
 export const UTILS = {
   formatPlayerName: (name, tag) => `${name}#${tag}`,
